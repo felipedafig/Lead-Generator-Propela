@@ -1,0 +1,31 @@
+{
+  "name": "propela",
+  "version": "1.0.0",
+  "description": "High-efficiency lead generation platform",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "node server/index.js",
+    "build": "npm run build:frontend",
+    "build:frontend": "cd frontend && npm run build",
+    "start": "node server/index.js",
+    "install-all": "npm install && cd frontend && npm install"
+  },
+  "keywords": ["lead-generation", "crm", "scraping"],
+  "author": "Felipe",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "sqlite3": "^5.1.6",
+    "sqlite": "^5.0.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.1.2",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.2",
+    "cheerio": "^1.0.0-rc.12",
+    "exceljs": "^4.3.0",
+    "node-cron": "^3.0.2",
+    "puppeteer": "^21.4.1"
+  }
+}

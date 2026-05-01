@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #ffffff;
+  color: #000000;
+}
+
+.propela-logo {
+  width: 40px;
+  height: 40px;
+}
+
+.propela-logo-full {
+  height: 30px;
+}
+
+.btn-propela {
+  @apply bg-black text-white px-6 py-2 rounded-md font-semibold hover:bg-gray-900 transition-colors;
+}
+
+.btn-propela-secondary {
+  @apply border border-black text-black px-6 py-2 rounded-md font-semibold hover:bg-gray-100 transition-colors;
+}
+
+.input-propela {
+  @apply w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black;
+}
+
+.card-propela {
+  @apply bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow;
+}
+
+.table-propela {
+  @apply w-full border-collapse;
+}
+
+.table-propela thead {
+  @apply bg-black text-white;
+}
+
+.table-propela th {
+  @apply px-6 py-3 text-left font-semibold;
+}
+
+.table-propela td {
+  @apply px-6 py-3 border-b border-gray-200;
+}
+
+.table-propela tbody tr:hover {
+  @apply bg-gray-50;
+}
+
+.badge {
+  @apply inline-block px-3 py-1 rounded-full text-sm font-medium;
+}
+
+.badge-new {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.badge-contacted {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.badge-qualified {
+  @apply bg-green-100 text-green-800;
+}
+
+.badge-closed {
+  @apply bg-gray-100 text-gray-800;
+}
