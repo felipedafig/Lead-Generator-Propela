@@ -5,7 +5,19 @@
       "Bash(git config *)",
       "Bash(git add *)",
       "Bash(git commit -m 'Initial Propela platform setup with full-stack implementation *)",
-      "Bash(git commit -m 'Add comprehensive documentation *)"
+      "Bash(git commit -m 'Add comprehensive documentation *)",
+      "Bash(grep -E \"\\\\.\\(js|jsx|json\\)$\")",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5000/api/health)",
+      "Bash(npm cache *)",
+      "Bash(rm -rf node_modules package-lock.json)",
+      "Bash(curl *)",
+      "Bash(node server/index.js)",
+      "Bash(killall node *)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(git commit -m 'Add multi-country support and convert UI to English *)"
     ]
   }
 }

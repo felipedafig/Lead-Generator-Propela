@@ -3,7 +3,24 @@ import axios from 'axios'
 import { Zap, CheckCircle, AlertCircle, Loader } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
 
-const CITIES = ['Miami', 'New York', 'Los Angeles', 'Chicago', 'Houston']
+const COUNTRIES_CITIES = {
+  'united-states': ['Miami, Florida', 'Orlando, Florida', 'San Antonio, Texas', 'Los Angeles, California', 'El Paso, Texas'],
+  'spain': ['Madrid', 'Barcelona', 'Málaga'],
+  'mexico': ['Cancún / Playa del Carmen', 'Mexico City'],
+  'netherlands': ['Amsterdam', 'Rotterdam', 'Utrecht'],
+  'denmark': ['Copenhagen', 'Aarhus'],
+  'brazil': ['São Paulo', 'Rio de Janeiro', 'Florianópolis', 'Gramado', 'Balneário Camboriú']
+}
+
+const COUNTRY_NAMES = {
+  'united-states': 'United States',
+  'spain': 'Spain',
+  'mexico': 'Mexico',
+  'netherlands': 'Netherlands',
+  'denmark': 'Denmark',
+  'brazil': 'Brazil'
+}
+
 const INDUSTRIES = ['hotel', 'property manager']
 
 export default function Scraper() {
@@ -11,10 +28,13 @@ export default function Scraper() {
   const [loading, setLoading] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [formData, setFormData] = useState({
+    country: '',
     city: '',
     industry: '',
     min_reviews: 3
   })
+
+  const availableCities = formData.country ? COUNTRIES_CITIES[formData.country] : []
 
   useEffect(() => {
     fetchTasks()
@@ -36,8 +56,8 @@ export default function Scraper() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.city || !formData.industry) {
-      alert('Por favor, preencha todos os campos')
+    if (!formData.country || !formData.city || !formData.industry) {
+      alert('Please fill in all fields')
       return
     }
 
@@ -47,7 +67,7 @@ export default function Scraper() {
       await axios.post('/api/scraping/tasks', formData, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      setFormData({ city: '', industry: '', min_reviews: 3 })
+      setFormData({ country: '', city: '', industry: '', min_reviews: 3 })
       fetchTasks()
     } catch (error) {
       console.error('Error creating task:', error)
@@ -93,7 +113,7 @@ export default function Scraper() {
           <div className="px-6 py-4">
             <h1 className="text-2xl font-bold text-black flex items-center gap-2">
               <Zap size={28} />
-              Web Scraper
+              Lead Discovery
             </h1>
           </div>
         </header>
@@ -102,30 +122,50 @@ export default function Scraper() {
         <main className="p-6 max-w-6xl">
           {/* Form Card */}
           <div className="bg-white rounded-lg p-6 border border-gray-200 mb-8">
-            <h2 className="text-xl font-bold mb-6">Iniciar Nova Coleta</h2>
+            <h2 className="text-xl font-bold mb-6">Start New Search</h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid md:grid-cols-3 gap-4">
+              <div className="grid md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-black mb-2">
-                    Cidade
+                    Country
                   </label>
                   <select
-                    value={formData.city}
-                    onChange={(e) => setFormData({...formData, city: e.target.value})}
+                    value={formData.country}
+                    onChange={(e) => setFormData({...formData, country: e.target.value, city: ''})}
                     required
                     className="input-propela"
                   >
-                    <option value="">Selecione uma cidade</option>
-                    {CITIES.map(city => (
-                      <option key={city} value={city}>{city}</option>
+                    <option value="">Select a country</option>
+                    {Object.entries(COUNTRY_NAMES).map(([key, name]) => (
+                      <option key={key} value={key}>{name}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-black mb-2">
-                    Setor
+                    City
+                  </label>
+                  <select
+                    value={formData.city}
+                    onChange={(e) => setFormData({...formData, city: e.target.value})}
+                    required
+                    disabled={!formData.country}
+                    className="input-propela disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  >
+                    <option value="">Select a city</option>
+                    {availableCities.map(city => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-black mb-2">
+                    Industry
                   </label>
                   <select
                     value={formData.industry}
@@ -133,18 +173,15 @@ export default function Scraper() {
                     required
                     className="input-propela"
                   >
-                    <option value="">Selecione um setor</option>
-                    {INDUSTRIES.map(ind => (
-                      <option key={ind} value={ind}>
-                        {ind === 'property manager' ? 'Gerenciador de Propriedades' : 'Hotel'}
-                      </option>
-                    ))}
+                    <option value="">Select an industry</option>
+                    <option value="hotel">Hotel</option>
+                    <option value="property manager">Property Manager</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-black mb-2">
-                    Avaliação Mínima
+                    Minimum Reviews
                   </label>
                   <input
                     type="number"
@@ -159,11 +196,11 @@ export default function Scraper() {
 
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || !formData.country || !formData.city}
                 className="btn-propela disabled:opacity-50 flex items-center gap-2"
               >
                 <Zap size={20} />
-                {loading ? 'Iniciando...' : 'Iniciar Coleta'}
+                {loading ? 'Starting...' : 'Start Scraping'}
               </button>
             </form>
           </div>
@@ -171,27 +208,27 @@ export default function Scraper() {
           {/* Tasks List */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
             <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-bold">Histórico de Coletas</h2>
+              <h2 className="text-xl font-bold">Search History</h2>
               <p className="text-sm text-gray-600 mt-1">
-                {tasks.length} tarefa{tasks.length !== 1 ? 's' : ''}
+                {tasks.length} search{tasks.length !== 1 ? 'es' : ''}
               </p>
             </div>
 
             {tasks.length === 0 ? (
               <div className="p-6 text-center text-gray-500">
-                <p>Nenhuma coleta iniciada ainda</p>
+                <p>No searches started yet</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="table-propela">
                   <thead>
                     <tr>
-                      <th>Cidade</th>
-                      <th>Setor</th>
+                      <th>City</th>
+                      <th>Industry</th>
                       <th>Status</th>
-                      <th>Leads Encontrados</th>
-                      <th>Iniciado em</th>
-                      <th>Concluído em</th>
+                      <th>Leads Found</th>
+                      <th>Started</th>
+                      <th>Completed</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -238,24 +275,24 @@ export default function Scraper() {
           {/* Info Cards */}
           <div className="grid md:grid-cols-2 gap-6 mt-8">
             <div className="card-propela">
-              <h3 className="font-bold mb-3">ℹ️ Como funciona</h3>
+              <h3 className="font-bold mb-3">ℹ️ How It Works</h3>
               <ul className="text-sm text-gray-600 space-y-2">
-                <li>1. Selecione a cidade e o setor desejado</li>
-                <li>2. Configure a avaliação mínima (opcional)</li>
-                <li>3. Clique em "Iniciar Coleta"</li>
-                <li>4. Os dados serão coletados automaticamente</li>
-                <li>5. Acompanhe o progresso em tempo real</li>
+                <li>1. Select a country from the dropdown</li>
+                <li>2. Choose your target city</li>
+                <li>3. Select the industry (Hotel or Property Manager)</li>
+                <li>4. Set minimum review count (optional)</li>
+                <li>5. Click "Start Scraping" and monitor progress</li>
               </ul>
             </div>
 
             <div className="card-propela">
-              <h3 className="font-bold mb-3">🎯 Fontes de Dados</h3>
+              <h3 className="font-bold mb-3">🎯 Data Sources</h3>
               <ul className="text-sm text-gray-600 space-y-2">
                 <li>✓ Google Maps API</li>
-                <li>✓ Web scraping de diretórios públicos</li>
-                <li>✓ Bases de dados de negócios</li>
-                <li>✓ Redes sociais e plataformas públicas</li>
-                <li>✓ Atualização contínua de informações</li>
+                <li>✓ Business directories scraping</li>
+                <li>✓ Public business databases</li>
+                <li>✓ Social networks & public platforms</li>
+                <li>✓ Continuous data enrichment</li>
               </ul>
             </div>
           </div>

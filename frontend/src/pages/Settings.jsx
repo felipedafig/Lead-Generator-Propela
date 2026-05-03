@@ -45,7 +45,7 @@ export default function Settings() {
           <div className="px-6 py-4">
             <h1 className="text-2xl font-bold text-black flex items-center gap-2">
               <SettingsIcon size={28} />
-              Configurações
+              Settings
             </h1>
           </div>
         </header>
@@ -54,18 +54,18 @@ export default function Settings() {
         <main className="p-6 max-w-4xl">
           {saved && (
             <div className="mb-6 p-4 bg-green-100 border border-green-300 rounded-lg text-green-800">
-              ✓ Configurações salvas com sucesso!
+              ✓ Settings saved successfully!
             </div>
           )}
 
           {/* Account Settings */}
           <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
-            <h2 className="text-xl font-bold mb-6">Conta</h2>
+            <h2 className="text-xl font-bold mb-6">Account</h2>
 
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-black mb-2">
-                  Nome
+                  Name
                 </label>
                 <input
                   type="text"
@@ -73,7 +73,7 @@ export default function Settings() {
                   disabled
                   className="input-propela bg-gray-100 cursor-not-allowed"
                 />
-                <p className="text-xs text-gray-500 mt-1">Este campo não pode ser editado</p>
+                <p className="text-xs text-gray-500 mt-1">This field cannot be edited</p>
               </div>
 
               <div>
@@ -86,16 +86,16 @@ export default function Settings() {
                   disabled
                   className="input-propela bg-gray-100 cursor-not-allowed"
                 />
-                <p className="text-xs text-gray-500 mt-1">Para mudar seu email, entre em contato com o suporte</p>
+                <p className="text-xs text-gray-500 mt-1">To change your email, please contact support</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-black mb-2">
-                  Plano Atual
+                  Current Plan
                 </label>
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="font-bold text-blue-900">Profissional</p>
-                  <p className="text-sm text-blue-800">Acesso ilimitado a todas as features</p>
+                  <p className="font-bold text-blue-900">Professional</p>
+                  <p className="text-sm text-blue-800">Unlimited access to all features</p>
                 </div>
               </div>
             </div>
@@ -103,12 +103,12 @@ export default function Settings() {
 
           {/* API Configuration */}
           <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
-            <h2 className="text-xl font-bold mb-6">Integração com APIs</h2>
+            <h2 className="text-xl font-bold mb-6">API Integration</h2>
 
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-black mb-2">
-                  Google Maps API Key (Opcional)
+                  Google Maps API Key (Optional)
                 </label>
                 <input
                   type="password"
@@ -118,14 +118,14 @@ export default function Settings() {
                   className="input-propela"
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                  Se você fornecer sua própria chave, usaremos ela para scraping mais eficiente.
-                  <a href="https://developers.google.com/maps" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline"> Obter chave</a>
+                  If you provide your own key, we'll use it for more efficient scraping.
+                  <a href="https://developers.google.com/maps" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline"> Get API key</a>
                 </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-black mb-2">
-                  Email de Notificações
+                  Notification Email
                 </label>
                 <input
                   type="email"
@@ -133,42 +133,42 @@ export default function Settings() {
                   onChange={(e) => setNotificationEmail(e.target.value)}
                   className="input-propela"
                 />
-                <p className="text-xs text-gray-500 mt-1">Receba notificações quando as coletas forem concluídas</p>
+                <p className="text-xs text-gray-500 mt-1">Receive notifications when searches are completed</p>
               </div>
             </div>
           </div>
 
           {/* Notifications */}
           <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
-            <h2 className="text-xl font-bold mb-6">Notificações</h2>
+            <h2 className="text-xl font-bold mb-6">Notifications</h2>
 
             <div className="space-y-4">
               <label className="flex items-center gap-3 cursor-pointer">
                 <input type="checkbox" defaultChecked className="w-4 h-4" />
-                <span className="text-black">Notificar quando uma coleta for concluída</span>
+                <span className="text-black">Notify when a search is completed</span>
               </label>
 
               <label className="flex items-center gap-3 cursor-pointer">
                 <input type="checkbox" defaultChecked className="w-4 h-4" />
-                <span className="text-black">Relatório semanal de leads</span>
+                <span className="text-black">Weekly leads report</span>
               </label>
 
               <label className="flex items-center gap-3 cursor-pointer">
                 <input type="checkbox" className="w-4 h-4" />
-                <span className="text-black">Novidades e atualizações do Propela</span>
+                <span className="text-black">Propela news and updates</span>
               </label>
             </div>
           </div>
 
           {/* Danger Zone */}
           <div className="bg-white rounded-lg p-6 border border-red-200 bg-red-50">
-            <h2 className="text-xl font-bold mb-4 text-red-900">Zona de Perigo</h2>
+            <h2 className="text-xl font-bold mb-4 text-red-900">Danger Zone</h2>
             <div className="space-y-4">
               <button className="w-full btn-propela-secondary border-red-300 text-red-600 hover:bg-red-100">
-                Deletar minha conta permanentemente
+                Delete my account permanently
               </button>
               <p className="text-xs text-red-600">
-                Esta ação não pode ser desfeita. Todos os seus dados serão permanentemente removidos.
+                This action cannot be undone. All your data will be permanently removed.
               </p>
             </div>
           </div>
@@ -177,7 +177,7 @@ export default function Settings() {
           <div className="mt-8">
             <button onClick={handleSaveSettings} className="flex items-center gap-2 btn-propela">
               <Save size={20} />
-              Salvar Configurações
+              Save Settings
             </button>
           </div>
         </main>

@@ -60,14 +60,14 @@ export default function Dashboard() {
 
             <div className="flex items-center gap-6">
               <span className="text-sm text-gray-600">
-                Bem-vindo, <strong>{user?.name || 'Usuário'}</strong>
+                Welcome, <strong>{user?.name || 'User'}</strong>
               </span>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-black transition"
               >
                 <LogOut size={20} />
-                Sair
+                Logout
               </button>
             </div>
           </div>
@@ -77,25 +77,25 @@ export default function Dashboard() {
         <main className="p-6">
           {loading ? (
             <div className="text-center py-20">
-              <p className="text-gray-500">Carregando dados...</p>
+              <p className="text-gray-500">Loading data...</p>
             </div>
           ) : (
             <>
               <div className="grid md:grid-cols-3 gap-6 mb-8">
                 <StatCard
-                  title="Total de Leads"
+                  title="Total Leads"
                   value={stats?.total_leads || 0}
                   icon={<Users size={24} />}
                   color="bg-blue-100"
                 />
                 <StatCard
-                  title="Contactados"
+                  title="Contacted"
                   value={stats?.contacted || 0}
                   icon={<Target size={24} />}
                   color="bg-green-100"
                 />
                 <StatCard
-                  title="Avaliação Média"
+                  title="Average Rating"
                   value={stats?.avg_reviews ? stats.avg_reviews.toFixed(1) : 0}
                   icon={<TrendingUp size={24} />}
                   color="bg-purple-100"
@@ -104,29 +104,29 @@ export default function Dashboard() {
 
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="card-propela">
-                  <h3 className="text-lg font-bold mb-4">Ações Rápidas</h3>
+                  <h3 className="text-lg font-bold mb-4">Quick Actions</h3>
                   <div className="space-y-3">
                     <button
                       onClick={() => navigate('/scraper')}
                       className="w-full btn-propela text-left"
                     >
-                      ➕ Iniciar Nova Coleta
+                      ➕ Start New Search
                     </button>
                     <button
                       onClick={() => navigate('/leads')}
                       className="w-full btn-propela-secondary text-left"
                     >
-                      📊 Visualizar Leads
+                      📊 View Leads
                     </button>
                   </div>
                 </div>
 
                 <div className="card-propela">
-                  <h3 className="text-lg font-bold mb-4">Informações da Conta</h3>
+                  <h3 className="text-lg font-bold mb-4">Account Information</h3>
                   <div className="space-y-2 text-sm">
                     <p><strong>Email:</strong> {user?.email}</p>
-                    <p><strong>Plano:</strong> Profissional</p>
-                    <p><strong>Créditos Disponíveis:</strong> Ilimitado</p>
+                    <p><strong>Plan:</strong> Professional</p>
+                    <p><strong>Available Credits:</strong> Unlimited</p>
                   </div>
                 </div>
               </div>

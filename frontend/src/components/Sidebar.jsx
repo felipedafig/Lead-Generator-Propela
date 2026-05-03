@@ -48,7 +48,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             }`}
           >
             <Search size={20} />
-            <span>Meus Leads</span>
+            <span>My Leads</span>
           </Link>
 
           <Link
@@ -60,7 +60,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             }`}
           >
             <Search size={20} />
-            <span>Web Scraper</span>
+            <span>Lead Discovery</span>
           </Link>
 
           <Link
@@ -72,7 +72,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             }`}
           >
             <Settings size={20} />
-            <span>Configurações</span>
+            <span>Settings</span>
           </Link>
         </nav>
 
