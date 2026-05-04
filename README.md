@@ -31,10 +31,10 @@
 
 **Backend:**
 - Node.js + Express.js
-- SQLite Database (PostgreSQL ready)
+- MySQL Database
 - JWT Authentication
 - Axios for HTTP requests
-- ExcelJS for XLSX exports
+- MCP Integration (Vibe Prospecting)
 
 **Frontend:**
 - React 18
@@ -110,7 +110,6 @@ propela/
 │   │   ├── components/    # Reusable components
 │   │   └── index.css      # Global styles
 │   └── package.json
-├── propela.db             # SQLite database
 ├── DEPLOYMENT.md          # Deployment guide
 ├── package.json           # Root package
 ├── .env.example           # Environment variables template
@@ -190,11 +189,12 @@ PORT=5000
 JWT_SECRET=your-secret-key-change-this
 NODE_ENV=development
 
-# Google Maps API (optional)
-GOOGLE_MAPS_API_KEY=your-api-key
-
-# Database
-DATABASE_URL=sqlite:./propela.db
+# Database (MySQL)
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=root
+DB_PASSWORD=your-password
+DB_NAME=propela
 ```
 
 ### Database Schema
@@ -271,15 +271,16 @@ DATABASE_URL=sqlite:./propela.db
 3. Add key to `.env` file
 4. The system will use it for more accurate data
 
-### Database Migration to PostgreSQL
+### Database Backup
 
-For production with larger datasets:
+For production environments, ensure regular MySQL backups:
 
 ```bash
-# Install PostgreSQL driver
-npm install pg pg-hstore
+# Backup database
+mysqldump -u root -p propela > backup.sql
 
-# Update db.js to use PostgreSQL instead of SQLite
+# Restore database
+mysql -u root -p propela < backup.sql
 ```
 
 ### Performance Tuning
@@ -320,10 +321,9 @@ kill -9 <PID>
 ```
 
 ### Database Issues
+Check MySQL connection:
 ```bash
-# Reset database
-rm propela.db
-npm run dev
+mysql -u root -p -h localhost
 ```
 
 ### CORS Errors

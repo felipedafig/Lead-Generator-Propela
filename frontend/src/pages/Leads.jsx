@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
-import { Download, Trash2, Edit2, Plus } from 'lucide-react'
+import { Download, Trash2, Edit2, Plus, ExternalLink, Trash } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
 
 export default function Leads() {
@@ -13,11 +13,13 @@ export default function Leads() {
   const [editingId, setEditingId] = useState(null)
   const [editForm, setEditForm] = useState({})
   const [showForm, setShowForm] = useState(false)
+  const [selectedRows, setSelectedRows] = useState(new Set())
   const [newLead, setNewLead] = useState({
     company_name: '',
     owner_name: '',
     phone_number: '',
     email: '',
+    website_url: '',
     address: '',
     city: '',
     industry: '',
@@ -41,7 +43,15 @@ export default function Leads() {
       const response = await axios.get(`/api/leads?${params}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      setLeads(response.data)
+
+      // Ensure boolean values are properly typed
+      const leadsWithBooleans = response.data.map(lead => ({
+        ...lead,
+        email_sent: !!lead.email_sent,
+        called: !!lead.called
+      }))
+
+      setLeads(leadsWithBooleans)
     } catch (error) {
       console.error('Error fetching leads:', error)
     } finally {
@@ -61,6 +71,7 @@ export default function Leads() {
         owner_name: '',
         phone_number: '',
         email: '',
+        website_url: '',
         address: '',
         city: '',
         industry: '',
@@ -75,21 +86,52 @@ export default function Leads() {
     }
   }
 
-  const handleUpdate = async (id) => {
+  const handleUpdate = async (id, updates = null) => {
     try {
       const token = localStorage.getItem('token')
-      await axios.put(`/api/leads/${id}`, editForm, {
+      const dataToUpdate = updates || editForm
+
+      // Update local state immediately for better UX
+      if (updates) {
+        const processedUpdates = {
+          ...updates,
+          email_sent: updates.email_sent !== undefined ? !!updates.email_sent : undefined,
+          called: updates.called !== undefined ? !!updates.called : undefined
+        }
+
+        setLeads(leads.map(lead =>
+          lead.id === id ? { ...lead, ...processedUpdates } : lead
+        ))
+      }
+
+      const response = await axios.put(`/api/leads/${id}`, dataToUpdate, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      setEditingId(null)
-      fetchLeads()
+
+      // Update with server response to ensure consistency
+      if (updates && response.data) {
+        setLeads(leads.map(lead =>
+          lead.id === id ? {
+            ...lead,
+            ...response.data,
+            email_sent: !!response.data.email_sent,
+            called: !!response.data.called
+          } : lead
+        ))
+      }
+
+      if (!updates) {
+        setEditingId(null)
+        fetchLeads()
+      }
     } catch (error) {
       console.error('Error updating lead:', error)
+      fetchLeads() // Revert on error
     }
   }
 
   const handleDelete = async (id) => {
-    if (window.confirm('Tem certeza que deseja deletar este lead?')) {
+    if (window.confirm('Are you sure you want to delete this lead?')) {
       try {
         const token = localStorage.getItem('token')
         await axios.delete(`/api/leads/${id}`, {
@@ -99,6 +141,50 @@ export default function Leads() {
       } catch (error) {
         console.error('Error deleting lead:', error)
       }
+    }
+  }
+
+  const handleToggleRow = (id) => {
+    const newSelected = new Set(selectedRows)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedRows(newSelected)
+  }
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedRows(new Set(leads.map(l => l.id)))
+    } else {
+      setSelectedRows(new Set())
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedRows.size === 0) return
+
+    const confirmMessage = `Are you sure you want to delete ${selectedRows.size} lead(s)? This cannot be undone.`
+    if (!window.confirm(confirmMessage)) return
+
+    try {
+      const token = localStorage.getItem('token')
+
+      // Delete all selected rows
+      await Promise.all(
+        Array.from(selectedRows).map(id =>
+          axios.delete(`/api/leads/${id}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        )
+      )
+
+      setSelectedRows(new Set())
+      fetchLeads()
+    } catch (error) {
+      console.error('Error bulk deleting leads:', error)
+      alert('Failed to delete some leads')
     }
   }
 
@@ -190,6 +276,15 @@ export default function Leads() {
                 <Plus size={20} />
                 Add Lead
               </button>
+              {selectedRows.size > 0 && (
+                <button
+                  onClick={handleBulkDelete}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                >
+                  <Trash size={20} />
+                  Delete {selectedRows.size} Lead{selectedRows.size !== 1 ? 's' : ''}
+                </button>
+              )}
             </div>
           </div>
 
@@ -226,6 +321,13 @@ export default function Leads() {
                     placeholder="Email"
                     value={newLead.email}
                     onChange={(e) => setNewLead({...newLead, email: e.target.value})}
+                    className="input-propela"
+                  />
+                  <input
+                    type="url"
+                    placeholder="Website (https://...)"
+                    value={newLead.website_url}
+                    onChange={(e) => setNewLead({...newLead, website_url: e.target.value})}
                     className="input-propela"
                   />
                   <input
@@ -277,25 +379,112 @@ export default function Leads() {
                 <table className="table-propela">
                   <thead>
                     <tr>
+                      <th className="w-12">
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.size === leads.length && leads.length > 0}
+                          onChange={handleSelectAll}
+                          className="w-4 h-4 rounded"
+                        />
+                      </th>
                       <th>Company</th>
                       <th>Owner</th>
                       <th>Phone</th>
                       <th>Email</th>
+                      <th>Website</th>
                       <th>City</th>
                       <th>Status</th>
+                      <th>Email Sent</th>
+                      <th>Called</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {leads.map((lead) => (
-                      <tr key={lead.id}>
+                      <tr key={lead.id} className={selectedRows.has(lead.id) ? 'bg-blue-50' : ''}>
+                        <td className="w-12">
+                          <input
+                            type="checkbox"
+                            checked={selectedRows.has(lead.id)}
+                            onChange={() => handleToggleRow(lead.id)}
+                            className="w-4 h-4 rounded"
+                          />
+                        </td>
                         <td className="font-semibold">{lead.company_name}</td>
                         <td>{lead.owner_name || '-'}</td>
-                        <td>{lead.phone_number || '-'}</td>
-                        <td className="text-sm">{lead.email || '-'}</td>
+                        <td className="whitespace-nowrap">
+                          {lead.phone_number ? (
+                            <a href={`tel:${lead.phone_number}`} className="text-blue-600 hover:text-blue-800">
+                              {lead.phone_number}
+                            </a>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="text-sm">
+                          {lead.email ? (
+                            <a href={`mailto:${lead.email}`} className="text-blue-600 hover:text-blue-800">
+                              {lead.email}
+                            </a>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                        <td className="whitespace-nowrap">
+                          {lead.website_url ? (
+                            <a
+                              href={lead.website_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                            >
+                              Visit <ExternalLink size={14} />
+                            </a>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
                         <td>{lead.city || '-'}</td>
                         <td>
                           <span className={getStatusBadge(lead.status)}>{lead.status}</span>
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={!!lead.email_sent}
+                              onChange={(e) => handleUpdate(lead.id, { email_sent: e.target.checked })}
+                              className="w-4 h-4 rounded cursor-pointer"
+                              title="Check when email sent"
+                            />
+                            {lead.email_sent && (
+                              <input
+                                type="date"
+                                value={lead.email_sent_date || ''}
+                                onChange={(e) => handleUpdate(lead.id, { email_sent_date: e.target.value })}
+                                className="text-xs px-2 py-1 border border-gray-300 rounded"
+                              />
+                            )}
+                          </div>
+                        </td>
+                        <td className="whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={!!lead.called}
+                              onChange={(e) => handleUpdate(lead.id, { called: e.target.checked })}
+                              className="w-4 h-4 rounded cursor-pointer"
+                              title="Check when call made"
+                            />
+                            {lead.called && (
+                              <input
+                                type="date"
+                                value={lead.called_date || ''}
+                                onChange={(e) => handleUpdate(lead.id, { called_date: e.target.value })}
+                                className="text-xs px-2 py-1 border border-gray-300 rounded"
+                              />
+                            )}
+                          </div>
                         </td>
                         <td>
                           <div className="flex gap-2">

@@ -17,7 +17,11 @@
       "Bash(killall node *)",
       "Bash(cat)",
       "Read(//tmp/**)",
-      "Bash(git commit -m 'Add multi-country support and convert UI to English *)"
+      "Bash(git commit -m 'Add multi-country support and convert UI to English *)",
+      "Bash(claude mcp *)",
+      "Bash(chmod +x C:\\\\dev\\\\Personal\\\\PropelaClientAquisition\\\\deploy.sh)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\dev\\\\Personal\\\\PropelaClientAquisition\" -Recurse -Depth 3 -Exclude \"node_modules\",\"dist\",\".git\" | Where-Object { $_.Extension -in @\\('.json', '.md', '.js', '.jsx', '.py', '.ts', '.tsx'\\) } | Select-Object FullName)",
+      "PowerShell(Get-Process *)"
     ]
   }
 }

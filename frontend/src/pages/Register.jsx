@@ -16,12 +16,12 @@ export default function Register({ setIsAuthenticated }) {
     setError('')
 
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem')
+      setError('Passwords do not match')
       return
     }
 
     if (password.length < 6) {
-      setError('A senha deve ter pelo menos 6 caracteres')
+      setError('Password must be at least 6 characters')
       return
     }
 
@@ -34,7 +34,7 @@ export default function Register({ setIsAuthenticated }) {
       setIsAuthenticated(true)
       navigate('/dashboard')
     } catch (err) {
-      setError(err.response?.data?.error || 'Erro ao criar conta')
+      setError(err.response?.data?.error || 'Failed to create account')
     } finally {
       setLoading(false)
     }
@@ -44,8 +44,12 @@ export default function Register({ setIsAuthenticated }) {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-black mb-2">Propela</h1>
-          <p className="text-gray-600">Crie sua conta</p>
+          <img
+            src="/assets/logo-full-black.png"
+            alt="Propela"
+            className="h-20 w-auto object-contain mx-auto mb-6"
+          />
+          <p className="text-gray-600 text-lg">Create your account</p>
         </div>
 
         {error && (
@@ -57,7 +61,7 @@ export default function Register({ setIsAuthenticated }) {
         <form onSubmit={handleSubmit} className="bg-white p-8 border border-gray-200 rounded-lg">
           <div className="mb-6">
             <label htmlFor="name" className="block text-sm font-medium text-black mb-2">
-              Nome
+              Full Name
             </label>
             <input
               type="text"
@@ -66,13 +70,13 @@ export default function Register({ setIsAuthenticated }) {
               onChange={(e) => setName(e.target.value)}
               required
               className="input-propela"
-              placeholder="Seu nome"
+              placeholder="Your name"
             />
           </div>
 
           <div className="mb-6">
             <label htmlFor="email" className="block text-sm font-medium text-black mb-2">
-              Email
+              Email Address
             </label>
             <input
               type="email"
@@ -81,13 +85,13 @@ export default function Register({ setIsAuthenticated }) {
               onChange={(e) => setEmail(e.target.value)}
               required
               className="input-propela"
-              placeholder="seu@email.com"
+              placeholder="your@email.com"
             />
           </div>
 
           <div className="mb-6">
             <label htmlFor="password" className="block text-sm font-medium text-black mb-2">
-              Senha
+              Password
             </label>
             <input
               type="password"
@@ -102,7 +106,7 @@ export default function Register({ setIsAuthenticated }) {
 
           <div className="mb-6">
             <label htmlFor="confirmPassword" className="block text-sm font-medium text-black mb-2">
-              Confirmar Senha
+              Confirm Password
             </label>
             <input
               type="password"
@@ -120,14 +124,14 @@ export default function Register({ setIsAuthenticated }) {
             disabled={loading}
             className="btn-propela w-full disabled:opacity-50"
           >
-            {loading ? 'Criando conta...' : 'Criar conta'}
+            {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
         <p className="text-center mt-6 text-gray-600">
-          Já tem conta?{' '}
+          Already have an account?{' '}
           <Link to="/login" className="text-black font-semibold hover:underline">
-            Fazer login
+            Sign In
           </Link>
         </p>
       </div>

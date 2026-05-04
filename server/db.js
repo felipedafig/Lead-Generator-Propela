@@ -1,77 +1,112 @@
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config();
 
-let db;
+let pool;
 
 export async function initializeDatabase() {
-  db = await open({
-    filename: path.join(__dirname, '../propela.db'),
-    driver: sqlite3.Database
-  });
+  try {
+    pool = mysql.createPool({
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 3306,
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'propela',
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0
+    });
 
-  await db.exec('PRAGMA foreign_keys = ON');
+    const connection = await pool.getConnection();
 
-  // Users table
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      name TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
+    // Create tables
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-  // Leads table
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS leads (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      company_name TEXT NOT NULL,
-      owner_name TEXT,
-      phone_number TEXT,
-      email TEXT,
-      address TEXT,
-      city TEXT,
-      industry TEXT,
-      review_count INTEGER,
-      rating REAL,
-      google_maps_url TEXT,
-      status TEXT DEFAULT 'new',
-      notes TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    )
-  `);
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS leads (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        user_id INT NOT NULL,
+        company_name VARCHAR(255) NOT NULL,
+        owner_name VARCHAR(255),
+        phone_number VARCHAR(20),
+        email VARCHAR(255),
+        website_url TEXT,
+        address VARCHAR(255),
+        city VARCHAR(100),
+        country VARCHAR(100),
+        industry VARCHAR(100),
+        employee_count INT,
+        company_size VARCHAR(100),
+        review_count INT,
+        rating DECIMAL(3,2),
+        google_maps_url TEXT,
+        vibe_id VARCHAR(255),
+        status VARCHAR(50) DEFAULT 'new',
+        email_sent BOOLEAN DEFAULT FALSE,
+        email_sent_date DATE,
+        called BOOLEAN DEFAULT FALSE,
+        called_date DATE,
+        notes LONGTEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_user_id (user_id),
+        INDEX idx_city (city),
+        INDEX idx_country (country),
+        INDEX idx_industry (industry),
+        INDEX idx_company_size (company_size)
+      )
+    `);
 
-  // Scraping tasks table
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS scraping_tasks (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      city TEXT NOT NULL,
-      industry TEXT NOT NULL,
-      min_reviews INTEGER DEFAULT 3,
-      status TEXT DEFAULT 'pending',
-      total_leads INTEGER DEFAULT 0,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      completed_at DATETIME,
-      FOREIGN KEY (user_id) REFERENCES users(id)
-    )
-  `);
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS lead_cache (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        query_hash VARCHAR(64) UNIQUE NOT NULL,
+        results LONGTEXT NOT NULL,
+        cost_estimate DECIMAL(10,4),
+        ttl_expires TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
-  console.log('✅ Database initialized successfully');
-  return db;
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS scraping_tasks (
+        id INT PRIMARY KEY AUTO_INCREMENT,
+        user_id INT NOT NULL,
+        city VARCHAR(100) NOT NULL,
+        country VARCHAR(100),
+        industry VARCHAR(100) NOT NULL,
+        min_reviews INT DEFAULT 3,
+        status VARCHAR(50) DEFAULT 'pending',
+        total_leads INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        completed_at TIMESTAMP NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        INDEX idx_user_id (user_id)
+      )
+    `);
+
+    connection.release();
+    console.log('✅ MySQL Database initialized successfully');
+    return pool;
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error);
+    throw error;
+  }
 }
 
 export function getDatabase() {
-  if (!db) {
-    throw new Error('Database not initialized');
+  if (!pool) {
+    throw new Error('Database not initialized. Call initializeDatabase() first.');
   }
-  return db;
+  return pool;
 }

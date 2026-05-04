@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: propela-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${DB_NAME:-propela}
+      MYSQL_USER: ${DB_USER:-propela_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-propela_password}
+      MYSQL_INITDB_SKIP_TZINFO: "yes"
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      # Persist MySQL data
+      - mysql_data:/var/lib/mysql
+      # Initialize database
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - propela-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Backend API Server
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: propela-backend
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      PORT: ${PORT:-5000}
+      DB_HOST: mysql
+      DB_PORT: ${DB_PORT:-3306}
+      DB_USER: ${DB_USER:-propela_user}
+      DB_PASSWORD: ${DB_PASSWORD:-propela_password}
+      DB_NAME: ${DB_NAME:-propela}
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-this-in-production}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      VIBE_PROSPECTING_URL: ${VIBE_PROSPECTING_URL}
+      VIBE_PROSPECTING_API_KEY: ${VIBE_PROSPECTING_API_KEY}
+      VIBE_CACHE_TTL_SECONDS: ${VIBE_CACHE_TTL_SECONDS:-900}
+    ports:
+      - "${PORT:-5000}:5000"
+    volumes:
+      # Mount source code for development (comment out for production)
+      # - ./server:/app/server
+      # - ./frontend:/app/frontend
+    networks:
+      - propela-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # Frontend Web Application
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: propela-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:5000}
+    networks:
+      - propela-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  propela-network:
+    driver: bridge

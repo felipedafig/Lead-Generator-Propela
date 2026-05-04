@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { BarChart3, Search, Settings } from 'lucide-react'
+import { BarChart3, Search, Settings, X } from 'lucide-react'
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const location = useLocation()
@@ -19,14 +19,27 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       <aside
         className={`${
           isOpen ? 'translate-x-0' : '-translate-x-full'
-        } fixed lg:relative w-64 h-screen bg-black text-white p-6 transition-transform duration-200 z-30 lg:z-0`}
+        } fixed lg:relative w-64 h-screen bg-black text-white transition-transform duration-200 z-30 lg:z-0 flex flex-col`}
       >
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold">Propela</h1>
-          <p className="text-gray-400 text-sm">Lead Generation</p>
+        {/* Logo Section */}
+        <div className="px-6 py-1 flex justify-center relative">
+          <Link to="/dashboard" className="flex justify-center">
+            <img
+              src="/assets/logo-icon-black.png"
+              alt="Propela"
+              className="h-55 w-auto object-contain filter invert leading-none"
+              title="Propela - Lead Generation Platform"
+            />
+          </Link>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="lg:hidden absolute right-6 text-gray-400 hover:text-white"
+          >
+            <X size={24} />
+          </button>
         </div>
 
-        <nav className="space-y-2">
+        <nav className="space-y-2 flex-1 px-6 -mt-2">
           <Link
             to="/dashboard"
             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
@@ -76,10 +89,11 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           </Link>
         </nav>
 
-        <div className="absolute bottom-6 left-6 right-6">
-          <div className="bg-gray-900 rounded-lg p-4">
-            <p className="text-sm text-gray-300 mb-2">Versão</p>
-            <p className="text-lg font-bold text-white">1.0.0</p>
+        <div className="mt-auto pt-6 border-t border-gray-800">
+          <div className="bg-gradient-to-br from-gray-900 to-black rounded-lg p-4">
+            <p className="text-xs text-gray-400 mb-2">Version</p>
+            <p className="text-base font-bold text-white">1.0.0</p>
+            <p className="text-xs text-gray-500 mt-2">Lead Generation Platform</p>
           </div>
         </div>
       </aside>

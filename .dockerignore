@@ -1,0 +1,53 @@
+# Dependencies
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Production
+dist
+build
+
+# Misc
+.git
+.gitignore
+.env
+.env.local
+.env.*.local
+.vscode
+.idea
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Logs
+logs
+*.log
+
+# Testing
+coverage
+.nyc_output
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+data/
+scripts/
+docs/
+README.md
+SETUP_GUIDE.md
+IMPORT_GUIDE.md
+CSV_IMPORT_GUIDE.md

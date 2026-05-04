@@ -9,6 +9,10 @@ yarn-error.log*
 .env.local
 .env.*.local
 
+# Claude Code
+.cod
+.cloud
+
 # Database
 *.db
 *.sqlite

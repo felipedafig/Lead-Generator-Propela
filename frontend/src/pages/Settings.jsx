@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { Settings as SettingsIcon, Save } from 'lucide-react'
+import axios from 'axios'
+import { Settings as SettingsIcon, Save, Upload, X, CheckCircle, AlertCircle, Loader } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
 
 export default function Settings() {
@@ -8,6 +9,10 @@ export default function Settings() {
   const [apiKey, setApiKey] = useState('')
   const [notificationEmail, setNotificationEmail] = useState('')
   const [saved, setSaved] = useState(false)
+  const [uploadedFiles, setUploadedFiles] = useState([])
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState(null)
+  const [leadType, setLeadType] = useState('hotels')
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user')
@@ -20,19 +25,106 @@ export default function Settings() {
     if (storedApiKey) {
       setApiKey(storedApiKey)
     }
+
+    const storedLeadType = localStorage.getItem('leadType')
+    if (storedLeadType) {
+      setLeadType(storedLeadType)
+    }
   }, [])
 
-  const handleSaveSettings = () => {
-    if (apiKey) {
-      localStorage.setItem('apiKey', apiKey)
+  const handleFileUpload = (e) => {
+    const files = Array.from(e.target.files)
+    files.forEach(file => {
+      if (file.type === 'text/csv' || file.name.endsWith('.csv')) {
+        setUploadedFiles(prev => [...prev, { name: file.name, file }])
+        setImportError(null)
+      } else {
+        setImportError('Only CSV files are allowed')
+      }
+    })
+    e.target.value = ''
+  }
+
+  const handleRemoveFile = (index) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const parseCSV = (csvText) => {
+    const lines = csvText.trim().split('\n')
+    if (lines.length < 2) return []
+
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
+    const leads = []
+
+    for (let i = 1; i < lines.length; i++) {
+      const values = lines[i].split(',').map(v => v.trim())
+      if (values.length < 2) continue
+
+      const lead = {}
+      headers.forEach((header, idx) => {
+        if (values[idx]) {
+          lead[header] = values[idx]
+        }
+      })
+      leads.push(lead)
     }
-    if (notificationEmail) {
-      const updated = {...user, email: notificationEmail}
-      localStorage.setItem('user', JSON.stringify(updated))
-      setUser(updated)
+
+    return leads
+  }
+
+  const handleSaveSettings = async () => {
+    setImporting(true)
+    setImportError(null)
+
+    try {
+      // Save basic settings
+      if (apiKey) {
+        localStorage.setItem('apiKey', apiKey)
+      }
+      if (notificationEmail) {
+        const updated = {...user, email: notificationEmail}
+        localStorage.setItem('user', JSON.stringify(updated))
+        setUser(updated)
+      }
+
+      // Save lead type preference
+      localStorage.setItem('leadType', leadType)
+
+      // Import leads from uploaded files
+      if (uploadedFiles.length > 0) {
+        const token = localStorage.getItem('token')
+        let totalImported = 0
+        let totalSkipped = 0
+
+        for (const fileObj of uploadedFiles) {
+          const fileContent = await fileObj.file.text()
+          const leadsData = parseCSV(fileContent)
+
+          const response = await axios.post('/api/leads/import', leadsData, {
+            headers: { Authorization: `Bearer ${token}` }
+          })
+
+          totalImported += response.data.imported || 0
+          totalSkipped += response.data.skipped || 0
+        }
+
+        setUploadedFiles([])
+        setSaved(true)
+        setTimeout(() => {
+          setSaved(false)
+        }, 3000)
+
+        alert(`Import complete!\nImported: ${totalImported}\nSkipped: ${totalSkipped}`)
+      } else {
+        setSaved(true)
+        setTimeout(() => setSaved(false), 3000)
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error)
+      setImportError(error.response?.data?.error || error.message || 'Failed to import leads')
+    } finally {
+      setImporting(false)
     }
-    setSaved(true)
-    setTimeout(() => setSaved(false), 3000)
   }
 
   return (
@@ -138,46 +230,114 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Notifications */}
+          {/* Lead Type Selection */}
           <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
-            <h2 className="text-xl font-bold mb-6">Notifications</h2>
+            <h2 className="text-xl font-bold mb-6">Lead Type</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Choose the type of leads to generate or manage
+            </p>
 
-            <div className="space-y-4">
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" defaultChecked className="w-4 h-4" />
-                <span className="text-black">Notify when a search is completed</span>
-              </label>
-
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" defaultChecked className="w-4 h-4" />
-                <span className="text-black">Weekly leads report</span>
-              </label>
-
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4" />
-                <span className="text-black">Propela news and updates</span>
-              </label>
+            <div className="flex gap-4">
+              <button
+                onClick={() => setLeadType('hotels')}
+                className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                  leadType === 'hotels'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                }`}
+              >
+                Hotels & Property Managers
+              </button>
+              <button
+                onClick={() => setLeadType('website-design')}
+                className={`px-6 py-3 rounded-lg font-medium transition-all ${
+                  leadType === 'website-design'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
+                }`}
+              >
+                Website Design Leads
+              </button>
             </div>
+            <p className="text-xs text-gray-500 mt-3">
+              Current: <span className="font-semibold">{leadType === 'hotels' ? 'Hotels & Property Managers' : 'Website Design Leads'}</span>
+            </p>
           </div>
 
-          {/* Danger Zone */}
-          <div className="bg-white rounded-lg p-6 border border-red-200 bg-red-50">
-            <h2 className="text-xl font-bold mb-4 text-red-900">Danger Zone</h2>
-            <div className="space-y-4">
-              <button className="w-full btn-propela-secondary border-red-300 text-red-600 hover:bg-red-100">
-                Delete my account permanently
-              </button>
-              <p className="text-xs text-red-600">
-                This action cannot be undone. All your data will be permanently removed.
-              </p>
+          {/* Import Leads */}
+          <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
+            <h2 className="text-xl font-bold mb-6">Import Leads</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Upload JSON files containing lead data. Files will be imported when you click Save Settings.
+            </p>
+
+            {importError && (
+              <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex gap-2">
+                <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                <span className="text-sm text-red-700">{importError}</span>
+              </div>
+            )}
+
+            {/* File Upload Area */}
+            <div className="mb-6">
+              <label className="block">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-400 hover:bg-blue-50 transition">
+                  <Upload size={32} className="text-gray-400 mx-auto mb-2" />
+                  <p className="font-medium text-gray-900">Click to upload or drag and drop</p>
+                  <p className="text-sm text-gray-600">CSV files only</p>
+                </div>
+                <input
+                  type="file"
+                  multiple
+                  accept=".csv"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
             </div>
+
+            {/* Uploaded Files List */}
+            {uploadedFiles.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-900">Files to import ({uploadedFiles.length}):</p>
+                <div className="space-y-2">
+                  {uploadedFiles.map((fileObj, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle size={18} className="text-blue-600" />
+                        <span className="text-sm font-medium text-gray-900">{fileObj.name}</span>
+                      </div>
+                      <button
+                        onClick={() => handleRemoveFile(index)}
+                        className="text-gray-400 hover:text-red-600 transition"
+                      >
+                        <X size={18} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Save Button */}
           <div className="mt-8">
-            <button onClick={handleSaveSettings} className="flex items-center gap-2 btn-propela">
-              <Save size={20} />
-              Save Settings
+            <button
+              onClick={handleSaveSettings}
+              disabled={importing}
+              className="flex items-center gap-2 btn-propela disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {importing ? (
+                <>
+                  <Loader size={20} className="animate-spin" />
+                  Saving & Importing...
+                </>
+              ) : (
+                <>
+                  <Save size={20} />
+                  Save Settings
+                </>
+              )}
             </button>
           </div>
         </main>

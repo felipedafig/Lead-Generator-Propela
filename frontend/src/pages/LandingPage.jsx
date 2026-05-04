@@ -21,10 +21,10 @@ export default function LandingPage() {
 
           <div className="flex gap-4">
             <Link to="/login" className="px-6 py-2 text-black font-medium hover:text-gray-700">
-              Entrar
+              Login
             </Link>
             <Link to="/register" className="btn-propela">
-              Solicitar acesso
+              Request Access
             </Link>
           </div>
         </nav>
@@ -34,18 +34,18 @@ export default function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <div className="text-center mb-20">
           <h1 className="text-6xl font-bold mb-6 text-black">
-            Geração de leads de alta eficiência.
+            High-Efficiency Lead Generation
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-            Descubra e gerencie leads qualificados em segundos. Automação inteligente para seu negócio crescer sem limite.
+            Discover and manage qualified leads in seconds. Smart automation for your business to grow without limits.
           </p>
           <div className="flex gap-4 justify-center">
             <Link to="/register" className="btn-propela flex items-center gap-2">
-              Começar agora
+              Start Now
               <ArrowRight size={20} />
             </Link>
             <button className="btn-propela-secondary">
-              Ver demonstração
+              View Demo
             </button>
           </div>
         </div>
@@ -54,30 +54,30 @@ export default function LandingPage() {
       {/* Features Section */}
       <section className="bg-gray-50 py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl font-bold text-center mb-16">Recursos Poderosos</h2>
+          <h2 className="text-4xl font-bold text-center mb-16">Powerful Features</h2>
 
           <div className="grid md:grid-cols-3 gap-8">
             <div className="card-propela">
               <Zap className="mb-4 text-black" size={32} />
-              <h3 className="text-xl font-bold mb-2">Scraping Inteligente</h3>
+              <h3 className="text-xl font-bold mb-2">Smart Scraping</h3>
               <p className="text-gray-600">
-                Colete dados de empresas em tempo real com filtros avançados por localização, setor e avaliações.
+                Collect company data in real-time with advanced filters by location, industry and ratings.
               </p>
             </div>
 
             <div className="card-propela">
               <BarChart3 className="mb-4 text-black" size={32} />
-              <h3 className="text-xl font-bold mb-2">Dashboard Avançado</h3>
+              <h3 className="text-xl font-bold mb-2">Advanced Dashboard</h3>
               <p className="text-gray-600">
-                Analise seus leads com gráficos interativos, estatísticas em tempo real e relatórios detalhados.
+                Analyze your leads with interactive charts, real-time statistics and detailed reports.
               </p>
             </div>
 
             <div className="card-propela">
               <Shield className="mb-4 text-black" size={32} />
-              <h3 className="text-xl font-bold mb-2">Segurança Total</h3>
+              <h3 className="text-xl font-bold mb-2">Complete Security</h3>
               <p className="text-gray-600">
-                Autenticação segura, criptografia de dados e conformidade com regulamentações de privacidade.
+                Secure authentication, data encryption and privacy regulation compliance.
               </p>
             </div>
           </div>
@@ -87,12 +87,12 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="py-20">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold mb-6">Pronto para escalar seu negócio?</h2>
+          <h2 className="text-4xl font-bold mb-6">Ready to scale your business?</h2>
           <p className="text-xl text-gray-600 mb-8">
-            Junte-se a centenas de empreendedores usando Propela para crescer mais rápido.
+            Join hundreds of entrepreneurs using Propela to grow faster.
           </p>
           <Link to="/register" className="btn-propela inline-flex items-center gap-2">
-            Solicitar acesso
+            Request Access
             <ArrowRight size={20} />
           </Link>
         </div>
@@ -101,7 +101,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-gray-200 bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-gray-600">
-          <p>&copy; 2026 Propela. Todos os direitos reservados.</p>
+          <p>&copy; 2026 Propela. All rights reserved.</p>
         </div>
       </footer>
     </div>
