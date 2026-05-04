@@ -16,7 +16,8 @@ export async function initializeDatabase() {
       database: process.env.DB_NAME || 'propela',
       waitForConnections: true,
       connectionLimit: 10,
-      queueLimit: 0
+      queueLimit: 0,
+      dateStrings: true
     });
 
     const connection = await pool.getConnection();
