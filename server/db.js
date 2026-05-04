@@ -1,4 +1,5 @@
 import mysql from 'mysql2/promise';
+import bcryptjs from 'bcryptjs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -95,12 +96,30 @@ export async function initializeDatabase() {
       )
     `);
 
+    await seedDefaultUsers(connection);
+
     connection.release();
     console.log('✅ MySQL Database initialized successfully');
     return pool;
   } catch (error) {
     console.error('❌ Database initialization failed:', error);
     throw error;
+  }
+}
+
+async function seedDefaultUsers(connection) {
+  const users = [
+    { name: 'Delano', email: 'delano@test.com', password: 'delano123' },
+    { name: 'Felipe', email: 'felipe@test.com', password: 'delano123' }
+  ];
+
+  for (const user of users) {
+    const [existing] = await connection.query('SELECT id FROM users WHERE email = ?', [user.email]);
+    if (existing.length === 0) {
+      const hashed = await bcryptjs.hash(user.password, 10);
+      await connection.query('INSERT INTO users (name, email, password) VALUES (?, ?, ?)', [user.name, user.email, hashed]);
+      console.log(`✅ Default user created: ${user.email}`);
+    }
   }
 }
 
