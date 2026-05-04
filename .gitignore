@@ -11,7 +11,7 @@ yarn-error.log*
 
 # Claude Code
 .cod
-.cloud
+.claude
 
 # Database
 *.db
