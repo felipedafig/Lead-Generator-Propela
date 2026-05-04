@@ -84,13 +84,6 @@ export default function Login({ setIsAuthenticated }) {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-
-        <p className="text-center mt-6 text-gray-600">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-black font-semibold hover:underline">
-            Create one
-          </Link>
-        </p>
       </div>
     </div>
   )
