@@ -268,7 +268,7 @@ export default function Settings() {
           <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
             <h2 className="text-xl font-bold mb-6">Import Leads</h2>
             <p className="text-sm text-gray-600 mb-4">
-              Upload JSON files containing lead data. Files will be imported when you click Save Settings.
+              Upload CSV files containing lead data. Files will be imported into the database when you click Save Settings.
             </p>
 
             {importError && (

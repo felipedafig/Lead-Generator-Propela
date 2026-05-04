@@ -1,7 +1,6 @@
 import express from 'express';
 import ExcelJS from 'exceljs';
 import { getDatabase } from '../db.js';
-import { searchProspects } from '../services/vibeProspecting.js';
 import logger from '../utils/logger.js';
 
 const router = express.Router();
@@ -122,125 +121,6 @@ router.post('/import', async (req, res) => {
       error: 'Failed to import leads',
       details: error.message
     });
-  }
-});
-
-// Search for prospects via Vibe Prospecting (Live API)
-router.post('/search', async (req, res) => {
-  try {
-    const { country, city, industry, minReviews = 3, limit = 20, useCache = true } = req.body;
-
-    if (!country || !city || !industry) {
-      return res.status(400).json({ error: 'Country, city, and industry are required' });
-    }
-
-    logger.info('Prospect search initiated', {
-      userId: req.user.id,
-      country,
-      city,
-      industry,
-      minReviews,
-      limit,
-      useCache
-    });
-
-    // Call Vibe Prospecting service
-    const searchResult = await searchProspects({
-      country,
-      city,
-      industry,
-      minReviews,
-      limit,
-      useCache
-    });
-
-    if (!searchResult.success) {
-      return res.status(searchResult.code === 'RATE_LIMIT_429' ? 429 : 500).json({
-        error: searchResult.error,
-        code: searchResult.code,
-        retryAfter: searchResult.retryAfter
-      });
-    }
-
-    res.json({
-      success: true,
-      cached: searchResult.cached,
-      cacheAge: searchResult.cacheAge,
-      costEstimate: searchResult.costEstimate,
-      results: searchResult.results,
-      totalFound: searchResult.totalFound,
-      queryTime: searchResult.queryTime
-    });
-  } catch (error) {
-    logger.error('Prospect search error', {
-      userId: req.user.id,
-      error: error.message
-    });
-
-    res.status(500).json({
-      error: 'Failed to search prospects',
-      code: 'SEARCH_ERROR'
-    });
-  }
-});
-
-// Save a prospect from search results to leads table
-router.post('/save-from-search', async (req, res) => {
-  try {
-    const {
-      company_name,
-      owner_name,
-      phone_number,
-      email,
-      city,
-      country,
-      industry,
-      review_count,
-      rating,
-      vibe_id
-    } = req.body;
-
-    if (!company_name || !city || !industry) {
-      return res.status(400).json({ error: 'Company name, city, and industry required' });
-    }
-
-    const db = getDatabase();
-    const [result] = await db.execute(
-      `INSERT INTO leads
-       (user_id, company_name, owner_name, phone_number, email, city, country, industry, review_count, rating, vibe_id, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        req.user.id,
-        company_name,
-        owner_name || null,
-        phone_number || null,
-        email || null,
-        city,
-        country || null,
-        industry,
-        review_count || 0,
-        rating || 0,
-        vibe_id || null,
-        `Saved from Vibe Prospecting search on ${new Date().toLocaleDateString()}`
-      ]
-    );
-
-    const lead = await db.execute(
-      'SELECT * FROM leads WHERE id = ?',
-      [result.insertId]
-    );
-
-    res.status(201).json({
-      success: true,
-      lead: lead[0][0]
-    });
-  } catch (error) {
-    logger.error('Save prospect error', {
-      userId: req.user.id,
-      error: error.message
-    });
-
-    res.status(500).json({ error: 'Failed to save prospect' });
   }
 });
 

@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { initializeDatabase } from './db.js';
-import { initializeVibeProspecting } from './services/vibeProspecting.js';
 import authRoutes from './routes/auth.js';
 import leadsRoutes from './routes/leads.js';
 import scrapingRoutes from './routes/scraping.js';
@@ -24,14 +23,6 @@ try {
   logger.info('Database initialized');
 } catch (error) {
   logger.warn('Database unavailable — leads/scraping features disabled', { error: error.message });
-}
-
-// Initialize Vibe Prospecting (optional - continues without it if failed)
-try {
-  await initializeVibeProspecting();
-  logger.info('Vibe Prospecting MCP initialized');
-} catch (error) {
-  logger.warn('Vibe Prospecting MCP not available', { error: error.message });
 }
 
 // Public routes

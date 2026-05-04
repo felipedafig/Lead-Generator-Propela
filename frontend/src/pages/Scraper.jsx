@@ -139,7 +139,6 @@ export default function Scraper() {
               <Zap size={28} />
               Lead Discovery
             </h1>
-            <p className="text-sm text-gray-600 mt-1">Powered by Vibe Prospecting</p>
           </div>
         </header>
 
