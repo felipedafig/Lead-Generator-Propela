@@ -49,23 +49,46 @@ export default function Settings() {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index))
   }
 
+  const parseCSVLine = (line) => {
+    const result = []
+    let current = ''
+    let inQuotes = false
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i]
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') { current += '"'; i++ }
+        else inQuotes = !inQuotes
+      } else if (char === ',' && !inQuotes) {
+        result.push(current.trim())
+        current = ''
+      } else {
+        current += char
+      }
+    }
+    result.push(current.trim())
+    return result
+  }
+
   const parseCSV = (csvText) => {
     const lines = csvText.trim().split('\n')
     if (lines.length < 2) return []
 
-    const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
+    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase())
     const leads = []
 
     for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(',').map(v => v.trim())
-      if (values.length < 2) continue
+      if (!lines[i].trim()) continue
+      const values = parseCSVLine(lines[i])
 
       const lead = {}
       headers.forEach((header, idx) => {
-        if (values[idx]) {
-          lead[header] = values[idx]
-        }
+        if (values[idx]) lead[header] = values[idx]
       })
+
+      const phone = lead.phone_number || lead.phone || ''
+      const email = lead.email || ''
+      if (!phone && !email) continue
+
       leads.push(lead)
     }
 

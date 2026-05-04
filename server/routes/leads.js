@@ -47,6 +47,10 @@ router.post('/import', async (req, res) => {
 
     for (const lead of leads) {
       try {
+        const phone = lead.phone || lead.phone_number || '';
+        const email = lead.email || '';
+        if (!phone && !email) { skipped++; continue; }
+
         // Extract country and city from location if needed
         let city = lead.city || (lead.location ? lead.location.split(',')[0].trim() : '');
         let country = lead.country || (lead.location ? lead.location.split(',')[1].trim() : '');
@@ -259,7 +263,10 @@ router.put('/:id', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const db = getDatabase();
-    await db.execute('DELETE FROM leads WHERE id = ? AND user_id = ?', [req.params.id, req.user.id]);
+    const [result] = await db.execute('DELETE FROM leads WHERE id = ?', [req.params.id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Lead not found' });
+    }
     res.json({ success: true });
   } catch (error) {
     logger.error('Delete lead error:', error);
