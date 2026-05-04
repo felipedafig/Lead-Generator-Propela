@@ -40,7 +40,7 @@ services:
       NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-5000}
       DB_HOST: mysql
-      DB_PORT: ${DB_PORT:-3306}
+      DB_PORT: 3306
       DB_USER: ${DB_USER:-propela_user}
       DB_PASSWORD: ${DB_PASSWORD:-propela_password}
       DB_NAME: ${DB_NAME:-propela}
