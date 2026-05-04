@@ -18,13 +18,12 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Initialize database
+// Initialize database (optional — auth works without it)
 try {
   await initializeDatabase();
   logger.info('Database initialized');
 } catch (error) {
-  logger.error('Failed to initialize database', { error: error.message });
-  process.exit(1);
+  logger.warn('Database unavailable — leads/scraping features disabled', { error: error.message });
 }
 
 // Initialize Vibe Prospecting (optional - continues without it if failed)
