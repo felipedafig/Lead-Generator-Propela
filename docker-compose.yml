@@ -17,8 +17,6 @@ services:
     volumes:
       # Persist MySQL data
       - mysql_data:/var/lib/mysql
-      # Initialize database
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - propela-network
     healthcheck:
