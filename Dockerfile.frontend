@@ -6,13 +6,21 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy root package files
 COPY package*.json ./
 
-# Install dependencies
+# Copy frontend package files
+COPY frontend/package*.json ./frontend/
+
+# Install root dependencies
+RUN npm install
+
+# Install frontend dependencies
+WORKDIR /app/frontend
 RUN npm install
 
 # Copy application code
+WORKDIR /app
 COPY . .
 
 # Build the frontend
