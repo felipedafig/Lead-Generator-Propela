@@ -31,13 +31,13 @@ export default function Scraper() {
   const [lastSearch, setLastSearch] = useState(null)
   const [formData, setFormData] = useState({
     country: '',
-    city: '',
+    city: 'all',
     industry: '',
-    companySize: ''
+    companySize: 'all'
   })
 
   useEffect(() => {
-    setFormData({ country: '', city: '', industry: '', companySize: '' })
+    setFormData({ country: '', city: 'all', industry: '', companySize: 'all' })
     setResults(null)
     setLastSearch(null)
     setError(null)
@@ -50,7 +50,11 @@ export default function Scraper() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!formData.country || !formData.city || !formData.industry) {
+    if (leadType === LEAD_TYPES.WEBSITE_DESIGN) {
+      setError('Web Design mode has not been implemented yet.')
+      return
+    }
+    if (!formData.country || !formData.industry) {
       setError('Please fill in all required fields')
       return
     }
@@ -62,12 +66,15 @@ export default function Scraper() {
       const countryName = COUNTRY_NAMES[formData.country]
 
       const body = {
-        city: formData.city,
         country: countryName,
         industry: formData.industry
       }
 
-      if (formData.companySize) {
+      if (formData.city && formData.city !== 'all') {
+        body.city = formData.city
+      }
+
+      if (formData.companySize && formData.companySize !== 'all') {
         const selectedTier = availableSizes.find(t => t.value === formData.companySize)
         if (selectedTier) body.company_size = formData.companySize
       }
@@ -89,9 +96,9 @@ export default function Scraper() {
       })
       setLastSearch({
         country: countryName,
-        city: formData.city,
+        city: formData.city === 'all' ? 'All cities' : formData.city,
         industry: formData.industry,
-        companySize: formData.companySize,
+        companySize: formData.companySize === 'all' ? '' : formData.companySize,
         timestamp: new Date()
       })
     } catch (error) {
@@ -142,8 +149,21 @@ export default function Scraper() {
 
         {/* Main Content */}
         <main className="p-6 max-w-7xl">
+          {leadType === LEAD_TYPES.WEBSITE_DESIGN && (
+            <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-6 flex gap-3">
+              <AlertCircle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-900">Web Design mode isn't available yet</p>
+                <p className="text-sm text-amber-800 mt-1">
+                  Lead discovery for the Website Design environment hasn't been implemented.
+                  Switch to Hotels mode in the sidebar to search for leads, or import a CSV from Settings.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Form Card */}
-          <div className="bg-white rounded-lg p-6 border border-gray-200 mb-8">
+          <div className={`bg-white rounded-lg p-6 border border-gray-200 mb-8 ${leadType === LEAD_TYPES.WEBSITE_DESIGN ? 'opacity-60 pointer-events-none' : ''}`}>
             <h2 className="text-xl font-bold mb-6">Find Quality Leads</h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -154,7 +174,7 @@ export default function Scraper() {
                   </label>
                   <select
                     value={formData.country}
-                    onChange={(e) => setFormData({...formData, country: e.target.value, city: ''})}
+                    onChange={(e) => setFormData({...formData, country: e.target.value, city: 'all'})}
                     required
                     className="input-propela"
                   >
@@ -177,19 +197,15 @@ export default function Scraper() {
 
                 <div>
                   <label className="block text-sm font-medium text-black mb-2">
-                    City *
+                    City
                   </label>
                   <select
                     value={formData.city}
                     onChange={(e) => setFormData({...formData, city: e.target.value})}
-                    required
                     disabled={!formData.country}
                     className="input-propela disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
-                    <option value="">Select a city</option>
-                    {availableCities.map(city => (
-                      <option key={city} value={city}>{city}</option>
-                    ))}
+                    <option value="all">Select all cities</option>
                   </select>
                 </div>
               </div>
@@ -201,24 +217,16 @@ export default function Scraper() {
                   </label>
                   <select
                     value={formData.industry}
-                    onChange={(e) => setFormData({...formData, industry: e.target.value, companySize: ''})}
+                    onChange={(e) => setFormData({...formData, industry: e.target.value, companySize: 'all'})}
                     required
                     className="input-propela"
                   >
                     <option value="">Select an industry</option>
-                    {info.industries.map(i => {
-                      const allowed = leadType === LEAD_TYPES.HOTELS ? i.value === 'hotel' : true
-                      return (
-                        <option
-                          key={i.value}
-                          value={i.value}
-                          disabled={!allowed}
-                          title={allowed ? '' : 'No data available for this industry'}
-                        >
-                          {allowed ? i.label : `🚫 ${i.label}`}
-                        </option>
-                      )
-                    })}
+                    {info.industries.map(i => (
+                      <option key={i.value} value={i.value}>
+                        {i.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -234,16 +242,18 @@ export default function Scraper() {
                     disabled={!formData.industry || availableSizes.length === 0}
                     className="input-propela disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
-                    <option value="">
-                      {!formData.industry
-                        ? 'Choose industry first'
-                        : availableSizes.length === 0
-                          ? 'Not applicable'
-                          : 'Select a tier (optional)'}
-                    </option>
-                    {availableSizes.map(tier => (
-                      <option key={tier.value} value={tier.value}>{tier.label}</option>
-                    ))}
+                    {!formData.industry ? (
+                      <option value="all">Choose industry first</option>
+                    ) : availableSizes.length === 0 ? (
+                      <option value="all">Not applicable</option>
+                    ) : (
+                      <>
+                        <option value="all">Select all</option>
+                        {availableSizes.map(tier => (
+                          <option key={tier.value} value={tier.value}>{tier.label}</option>
+                        ))}
+                      </>
+                    )}
                   </select>
                 </div>
               </div>
@@ -257,7 +267,7 @@ export default function Scraper() {
 
               <button
                 type="submit"
-                disabled={loading || !formData.country || !formData.city || !formData.industry}
+                disabled={loading || leadType === LEAD_TYPES.WEBSITE_DESIGN || !formData.country || !formData.industry}
                 className="btn-propela disabled:opacity-50 flex items-center gap-2 px-6 py-2"
               >
                 {loading ? (

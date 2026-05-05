@@ -52,19 +52,44 @@ router.post('/import', async (req, res) => {
       return res.status(400).json({ error: 'No leads provided' });
     }
 
+    const truncate = (v, n) => {
+      if (v == null) return null;
+      const s = String(v).trim();
+      if (!s) return null;
+      return s.length > n ? s.substring(0, n) : s;
+    };
+    const toInt = (v) => {
+      if (v == null || v === '') return null;
+      const n = parseInt(String(v).replace(/[^\d-]/g, ''), 10);
+      return Number.isFinite(n) ? n : null;
+    };
+    const toFloat = (v) => {
+      if (v == null || v === '') return null;
+      const n = parseFloat(String(v).replace(/[^\d.-]/g, ''));
+      return Number.isFinite(n) ? n : null;
+    };
+
     let imported = 0;
     let skipped = 0;
+    const failures = [];
 
     for (const lead of leads) {
       try {
-        const phone = lead.phone || lead.phone_number || '';
-        const email = lead.email || '';
-        if (!phone && !email) { skipped++; continue; }
+        const phone = truncate(lead.phone || lead.phone_number, 64);
+        const email = truncate(lead.email, 255);
 
-        let city = lead.city || (lead.location ? lead.location.split(',')[0].trim() : '');
-        let country = lead.country || (lead.location ? lead.location.split(',')[1].trim() : '');
-        let industry = lead.industry || (leadType === 'hotels' ? 'hotel' : 'restaurant');
-        let employeeCount = lead.employeeCount || lead.employee_count || null;
+        let city = truncate(lead.city || (lead.location ? lead.location.split(',')[0] : null), 100);
+        let country = truncate(lead.country || (lead.location ? lead.location.split(',').slice(1).join(',') : null), 100);
+        let industry = truncate(lead.industry, 100) || (leadType === 'hotels' ? 'hotel' : null);
+
+        // Fall back through every plausible identifier so company_name is never null.
+        const companyName = truncate(
+          lead.company || lead.company_name || lead.name || lead.business_name
+            || email || phone || 'Unknown Lead',
+          255
+        );
+
+        let employeeCount = toInt(lead.employeeCount || lead.employee_count);
         let companySizeTier = leadType === 'hotels'
           ? getCompanySizeTier(industry, employeeCount)
           : null;
@@ -77,37 +102,47 @@ router.post('/import', async (req, res) => {
           }
         }
 
+        const reviewCount = toInt(lead.reviewCount || lead.review_count) ?? 0;
+        const rating = toFloat(lead.rating) ?? 0;
+
         await db.execute(
           `INSERT INTO leads
-           (user_id, company_name, owner_name, phone_number, email, city, country, industry, employee_count, company_size, review_count, rating, vibe_id, notes, lead_type)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (user_id, company_name, owner_name, phone_number, email, website_url, address, city, country, industry, employee_count, company_size, review_count, rating, vibe_id, notes, lead_type)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             req.user.id,
-            lead.company || lead.company_name || lead.name,
-            lead.name || lead.owner_name,
-            lead.phone || lead.phone_number || null,
-            lead.email || null,
+            companyName,
+            truncate(lead.name || lead.owner_name, 255),
+            phone,
+            email,
+            truncate(lead.website || lead.website_url, 65535),
+            truncate(lead.address, 255),
             city,
             country,
             industry,
             employeeCount,
             companySizeTier,
-            lead.reviewCount || lead.review_count || 0,
-            lead.rating || 0,
-            lead.id || lead.vibe_id || null,
-            lead.notes || `Imported lead - ${lead.title || 'Contact'}`,
+            reviewCount,
+            rating,
+            truncate(lead.id || lead.vibe_id, 255),
+            lead.notes ? String(lead.notes) : `Imported lead - ${lead.title || companyName}`,
             leadType
           ]
         );
 
         imported++;
       } catch (error) {
-        if (error.code === 'ER_DUP_ENTRY') {
-          skipped++;
-        } else {
-          logger.warn(`Skipped lead import: ${lead.company || lead.name}`, { error: error.message });
-          skipped++;
-        }
+        skipped++;
+        failures.push({
+          company: lead.company || lead.company_name || lead.name || '(unknown)',
+          code: error.code,
+          message: error.message
+        });
+        logger.warn('Skipped lead import', {
+          company: lead.company || lead.company_name || lead.name,
+          code: error.code,
+          error: error.message
+        });
       }
     }
 
@@ -116,7 +151,8 @@ router.post('/import', async (req, res) => {
       leadType,
       imported,
       skipped,
-      total: leads.length
+      total: leads.length,
+      failures: failures.slice(0, 10)
     });
 
     res.json({
@@ -124,6 +160,7 @@ router.post('/import', async (req, res) => {
       imported,
       skipped,
       total: leads.length,
+      failures: failures.slice(0, 10),
       message: `Imported ${imported} leads, skipped ${skipped}`
     });
   } catch (error) {

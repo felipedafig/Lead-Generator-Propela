@@ -39,7 +39,7 @@ export async function initializeDatabase() {
         user_id INT NOT NULL,
         company_name VARCHAR(255) NOT NULL,
         owner_name VARCHAR(255),
-        phone_number VARCHAR(20),
+        phone_number VARCHAR(64),
         email VARCHAR(255),
         website_url TEXT,
         address VARCHAR(255),
@@ -120,6 +120,13 @@ export async function initializeDatabase() {
       await connection.query(`ALTER TABLE scraping_tasks ADD INDEX idx_lead_type (lead_type)`);
     } catch (err) {
       if (err.code !== 'ER_DUP_FIELDNAME' && err.code !== 'ER_DUP_KEYNAME') throw err;
+    }
+
+    // Migration: widen phone_number so international numbers with formatting fit
+    try {
+      await connection.query(`ALTER TABLE leads MODIFY COLUMN phone_number VARCHAR(64)`);
+    } catch (err) {
+      // ignore if already at this size
     }
 
     await seedDefaultUsers(connection);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import axios from 'axios'
 import { Activity, Mail, Phone, LogOut } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid } from 'recharts'
@@ -16,7 +16,7 @@ const STATUS_COLORS = {
 export default function Dashboard() {
   const { leadType, info, theme } = useLeadType()
   const [user, setUser] = useState(null)
-  const [stats, setStats] = useState(null)
+  const [leads, setLeads] = useState([])
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
@@ -27,7 +27,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     setLoading(true)
-    fetchStats()
+    setLeads([])
+    fetchLeads()
   }, [leadType])
 
   const handleLogout = () => {
@@ -36,25 +37,57 @@ export default function Dashboard() {
     window.location.href = '/login'
   }
 
-  const fetchStats = async () => {
+  const fetchLeads = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await axios.get('/api/leads/stats/tracker', {
+      const response = await axios.get('/api/leads', {
         headers: { Authorization: `Bearer ${token}` }
       })
-      setStats(response.data)
+      setLeads(response.data || [])
     } catch (error) {
-      console.error('Error fetching stats:', error)
+      console.error('Error fetching leads:', error)
+      setLeads([])
     } finally {
       setLoading(false)
     }
   }
 
-  const totalEmails = stats?.emails_over_time?.reduce((sum, r) => sum + r.count, 0) || 0
-  const totalCalls = stats?.calls_over_time?.reduce((sum, r) => sum + r.count, 0) || 0
-  const statusData = stats?.status_distribution || []
-  const emailsData = stats?.emails_over_time || []
-  const callsData = stats?.calls_over_time || []
+  const { totalLeads, totalEmails, totalCalls, statusData, emailsData, callsData } = useMemo(() => {
+    const statusCounts = {}
+    const emailsByDate = {}
+    const callsByDate = {}
+    let emails = 0
+    let calls = 0
+
+    for (const lead of leads) {
+      const status = lead.status || 'new'
+      statusCounts[status] = (statusCounts[status] || 0) + 1
+
+      if (lead.email_sent) {
+        emails++
+        if (lead.email_sent_date) {
+          emailsByDate[lead.email_sent_date] = (emailsByDate[lead.email_sent_date] || 0) + 1
+        }
+      }
+      if (lead.called) {
+        calls++
+        if (lead.called_date) {
+          callsByDate[lead.called_date] = (callsByDate[lead.called_date] || 0) + 1
+        }
+      }
+    }
+
+    const sortByDate = (a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0)
+
+    return {
+      totalLeads: leads.length,
+      totalEmails: emails,
+      totalCalls: calls,
+      statusData: Object.entries(statusCounts).map(([status, count]) => ({ status, count })),
+      emailsData: Object.entries(emailsByDate).map(([date, count]) => ({ date, count })).sort(sortByDate),
+      callsData: Object.entries(callsByDate).map(([date, count]) => ({ date, count })).sort(sortByDate)
+    }
+  }, [leads])
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -94,8 +127,8 @@ export default function Dashboard() {
             <>
               <div className="grid md:grid-cols-3 gap-6 mb-8">
                 <StatCard
-                  title="Total Leads Tracked"
-                  value={Number(stats?.total_tracked) || 0}
+                  title="Total Leads"
+                  value={totalLeads}
                   icon={<Activity size={24} />}
                   color="bg-blue-100"
                 />
@@ -117,7 +150,7 @@ export default function Dashboard() {
                 <div className="bg-white rounded-lg p-6 border border-gray-200">
                   <h3 className="text-lg font-bold mb-4">Status Distribution</h3>
                   {statusData.length === 0 ? (
-                    <p className="text-gray-500 text-center py-12">No tracked leads yet</p>
+                    <p className="text-gray-500 text-center py-12">No leads yet</p>
                   ) : (
                     <ResponsiveContainer width="100%" height={280}>
                       <PieChart>

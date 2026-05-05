@@ -66,10 +66,10 @@ export default function Settings() {
   }
 
   const parseCSV = (csvText) => {
-    const lines = csvText.trim().split('\n')
+    const lines = csvText.replace(/\r\n?/g, '\n').trim().split('\n')
     if (lines.length < 2) return []
 
-    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase())
+    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim())
     const leads = []
 
     for (let i = 1; i < lines.length; i++) {
@@ -77,13 +77,16 @@ export default function Settings() {
       const values = parseCSVLine(lines[i])
 
       const lead = {}
+      let hasAny = false
       headers.forEach((header, idx) => {
-        if (values[idx]) lead[header] = values[idx]
+        const v = values[idx]
+        if (v != null && String(v).trim() !== '') {
+          lead[header] = String(v).trim()
+          hasAny = true
+        }
       })
 
-      const phone = lead.phone_number || lead.phone || ''
-      const email = lead.email || ''
-      if (!phone && !email) continue
+      if (!hasAny) continue
 
       leads.push(lead)
     }
@@ -111,6 +114,7 @@ export default function Settings() {
         const token = localStorage.getItem('token')
         let totalImported = 0
         let totalSkipped = 0
+        const allFailures = []
 
         for (const fileObj of uploadedFiles) {
           const fileContent = await fileObj.file.text()
@@ -122,6 +126,9 @@ export default function Settings() {
 
           totalImported += response.data.imported || 0
           totalSkipped += response.data.skipped || 0
+          if (Array.isArray(response.data.failures)) {
+            allFailures.push(...response.data.failures.map(f => ({ file: fileObj.name, ...f })))
+          }
         }
 
         setUploadedFiles([])
@@ -130,7 +137,13 @@ export default function Settings() {
           setSaved(false)
         }, 3000)
 
-        alert(`Import complete!\nImported: ${totalImported}\nSkipped: ${totalSkipped}`)
+        let msg = `Import complete!\nImported: ${totalImported}\nSkipped: ${totalSkipped}`
+        if (totalSkipped > 0 && allFailures.length > 0) {
+          msg += `\n\nFirst failure(s):\n` + allFailures.slice(0, 5).map(f =>
+            `• ${f.company || '(unknown)'} — ${f.code || ''} ${f.message || ''}`.trim()
+          ).join('\n')
+        }
+        alert(msg)
       } else {
         setSaved(true)
         setTimeout(() => setSaved(false), 3000)

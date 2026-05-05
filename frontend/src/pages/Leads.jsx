@@ -33,6 +33,8 @@ export default function Leads() {
   useEffect(() => {
     setIndustry('')
     setSelectedRows(new Set())
+    setLeads([])
+    setLoading(true)
   }, [leadType])
 
   useEffect(() => {

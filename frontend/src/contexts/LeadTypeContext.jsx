@@ -3,6 +3,22 @@ import axios from 'axios'
 
 const LeadTypeContext = createContext(null)
 
+// Module-level ref so the axios interceptor (set once) always reads the latest
+// value, even before the provider's effects have run. This avoids a race where
+// child page effects fire before the provider commits a new default header.
+const currentLeadTypeRef = { current: localStorage.getItem('leadType') || 'hotels' }
+let interceptorRegistered = false
+function ensureLeadTypeInterceptor() {
+  if (interceptorRegistered) return
+  interceptorRegistered = true
+  axios.interceptors.request.use(config => {
+    config.headers = config.headers || {}
+    config.headers['x-lead-type'] = currentLeadTypeRef.current
+    return config
+  })
+}
+ensureLeadTypeInterceptor()
+
 export const LEAD_TYPES = {
   HOTELS: 'hotels',
   WEBSITE_DESIGN: 'website-design'
@@ -76,8 +92,12 @@ export function LeadTypeProvider({ children }) {
     return stored && LEAD_TYPE_INFO[stored] ? stored : LEAD_TYPES.HOTELS
   })
 
+  // Keep the module-level ref in sync DURING render so any request the children
+  // fire from their effects (which run before the parent's effect) sees the
+  // updated value via the request interceptor.
+  currentLeadTypeRef.current = leadType
+
   useEffect(() => {
-    axios.defaults.headers.common['x-lead-type'] = leadType
     localStorage.setItem('leadType', leadType)
   }, [leadType])
 

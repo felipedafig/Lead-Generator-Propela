@@ -1,6 +1,6 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { BarChart3, Search, Settings, X, LogOut, Activity, Building2, Globe } from 'lucide-react'
+import { BarChart3, Search, Settings, X, LogOut, Building2, Globe } from 'lucide-react'
 import { useLeadType, LEAD_TYPES } from '../contexts/LeadTypeContext'
 
 export default function Sidebar({ isOpen, setIsOpen }) {
@@ -102,18 +102,6 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           >
             <Search size={20} />
             <span>My Leads</span>
-          </Link>
-
-          <Link
-            to="/tracker"
-            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-              isActive('/tracker')
-                ? activeLink
-                : 'text-gray-300 hover:text-white hover:bg-gray-900'
-            }`}
-          >
-            <Activity size={20} />
-            <span>Tracker</span>
           </Link>
 
           <Link
