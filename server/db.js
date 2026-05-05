@@ -71,34 +71,6 @@ export async function initializeDatabase() {
       )
     `);
 
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS lead_cache (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        query_hash VARCHAR(64) UNIQUE NOT NULL,
-        results LONGTEXT NOT NULL,
-        cost_estimate DECIMAL(10,4),
-        ttl_expires TIMESTAMP,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await connection.query(`
-      CREATE TABLE IF NOT EXISTS scraping_tasks (
-        id INT PRIMARY KEY AUTO_INCREMENT,
-        user_id INT NOT NULL,
-        city VARCHAR(100) NOT NULL,
-        country VARCHAR(100),
-        industry VARCHAR(100) NOT NULL,
-        min_reviews INT DEFAULT 3,
-        status VARCHAR(50) DEFAULT 'pending',
-        total_leads INT DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        completed_at TIMESTAMP NULL,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-        INDEX idx_user_id (user_id)
-      )
-    `);
-
     // Migration: add `claimed` column if it doesn't exist
     try {
       await connection.query(`ALTER TABLE leads ADD COLUMN claimed BOOLEAN DEFAULT FALSE`);
@@ -111,13 +83,6 @@ export async function initializeDatabase() {
     try {
       await connection.query(`ALTER TABLE leads ADD COLUMN lead_type VARCHAR(50) NOT NULL DEFAULT 'hotels'`);
       await connection.query(`ALTER TABLE leads ADD INDEX idx_lead_type (lead_type)`);
-    } catch (err) {
-      if (err.code !== 'ER_DUP_FIELDNAME' && err.code !== 'ER_DUP_KEYNAME') throw err;
-    }
-
-    try {
-      await connection.query(`ALTER TABLE scraping_tasks ADD COLUMN lead_type VARCHAR(50) NOT NULL DEFAULT 'hotels'`);
-      await connection.query(`ALTER TABLE scraping_tasks ADD INDEX idx_lead_type (lead_type)`);
     } catch (err) {
       if (err.code !== 'ER_DUP_FIELDNAME' && err.code !== 'ER_DUP_KEYNAME') throw err;
     }

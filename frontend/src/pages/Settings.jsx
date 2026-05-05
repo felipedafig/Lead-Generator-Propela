@@ -8,8 +8,6 @@ export default function Settings() {
   const { info, theme } = useLeadType()
   const [user, setUser] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [apiKey, setApiKey] = useState('')
-  const [notificationEmail, setNotificationEmail] = useState('')
   const [saved, setSaved] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState([])
   const [importing, setImporting] = useState(false)
@@ -17,15 +15,7 @@ export default function Settings() {
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
-      setNotificationEmail(JSON.parse(storedUser).email)
-    }
-
-    const storedApiKey = localStorage.getItem('apiKey')
-    if (storedApiKey) {
-      setApiKey(storedApiKey)
-    }
+    if (storedUser) setUser(JSON.parse(storedUser))
   }, [])
 
   const handleFileUpload = (e) => {
@@ -99,16 +89,6 @@ export default function Settings() {
     setImportError(null)
 
     try {
-      // Save basic settings
-      if (apiKey) {
-        localStorage.setItem('apiKey', apiKey)
-      }
-      if (notificationEmail) {
-        const updated = {...user, email: notificationEmail}
-        localStorage.setItem('user', JSON.stringify(updated))
-        setUser(updated)
-      }
-
       // Import leads from uploaded files
       if (uploadedFiles.length > 0) {
         const token = localStorage.getItem('token')

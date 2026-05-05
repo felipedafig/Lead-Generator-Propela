@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 import { initializeDatabase } from './db.js';
 import authRoutes from './routes/auth.js';
 import leadsRoutes from './routes/leads.js';
-import scrapingRoutes from './routes/scraping.js';
 import { authenticateToken } from './middleware/auth.js';
 import logger from './utils/logger.js';
 
@@ -22,7 +21,7 @@ try {
   await initializeDatabase();
   logger.info('Database initialized');
 } catch (error) {
-  logger.warn('Database unavailable — leads/scraping features disabled', { error: error.message });
+  logger.warn('Database unavailable — leads features disabled', { error: error.message });
 }
 
 // Public routes
@@ -30,7 +29,6 @@ app.use('/api/auth', authRoutes);
 
 // Protected routes
 app.use('/api/leads', authenticateToken, leadsRoutes);
-app.use('/api/scraping', authenticateToken, scrapingRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

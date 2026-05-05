@@ -4,15 +4,6 @@ import { Zap, AlertCircle, Loader, Star, Phone, Mail, MapPin } from 'lucide-reac
 import Sidebar from '../components/Sidebar'
 import { useLeadType, LEAD_TYPES } from '../contexts/LeadTypeContext'
 
-const COUNTRIES_CITIES = {
-  'united-states': ['Miami, Florida', 'Orlando, Florida', 'San Antonio, Texas', 'Los Angeles, California', 'El Paso, Texas'],
-  'spain': ['Madrid', 'Barcelona', 'Málaga'],
-  'mexico': ['Cancún / Playa del Carmen', 'Mexico City'],
-  'netherlands': ['Amsterdam', 'Rotterdam', 'Utrecht'],
-  'denmark': ['Copenhagen', 'Aarhus'],
-  'brazil': ['São Paulo', 'Rio de Janeiro', 'Florianópolis', 'Gramado', 'Balneário Camboriú']
-}
-
 const COUNTRY_NAMES = {
   'united-states': 'United States',
   'spain': 'Spain',
@@ -43,7 +34,6 @@ export default function Scraper() {
     setError(null)
   }, [leadType])
 
-  const availableCities = formData.country ? COUNTRIES_CITIES[formData.country] : []
   const availableSizes = formData.industry && info.companySizeTiers[formData.industry]
     ? info.companySizeTiers[formData.industry]
     : []
@@ -224,11 +214,19 @@ export default function Scraper() {
                     className="input-propela"
                   >
                     <option value="">Select an industry</option>
-                    {info.industries.map(i => (
-                      <option key={i.value} value={i.value}>
-                        {i.label}
-                      </option>
-                    ))}
+                    {info.industries.map(i => {
+                      const allowed = leadType === LEAD_TYPES.HOTELS ? i.value === 'hotel' : true
+                      return (
+                        <option
+                          key={i.value}
+                          value={i.value}
+                          disabled={!allowed}
+                          title={allowed ? '' : 'No data available for this industry'}
+                        >
+                          {allowed ? i.label : `🚫 ${i.label}`}
+                        </option>
+                      )
+                    })}
                   </select>
                 </div>
 
@@ -252,7 +250,14 @@ export default function Scraper() {
                       <>
                         <option value="all">Select all</option>
                         {availableSizes.map(tier => (
-                          <option key={tier.value} value={tier.value}>{tier.label}</option>
+                          <option
+                            key={tier.value}
+                            value={tier.value}
+                            disabled
+                            title="No data available for this tier"
+                          >
+                            🚫 {tier.label}
+                          </option>
                         ))}
                       </>
                     )}
