@@ -132,10 +132,16 @@ router.post('/import', async (req, res) => {
 router.get('/', async (req, res) => {
   try {
     const db = getDatabase();
-    const { city, country, industry, company_size, status, search } = req.query;
+    const { city, country, industry, company_size, status, search, tracking } = req.query;
 
     let query = 'SELECT * FROM leads WHERE user_id = ?';
     let params = [req.user.id];
+
+    if (tracking === 'true') {
+      query += ' AND (email_sent = 1 OR called = 1)';
+    } else if (tracking === 'false') {
+      query += ' AND email_sent = 0 AND called = 0';
+    }
 
     if (city) {
       query += ' AND city = ?';

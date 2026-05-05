@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Login from './pages/Login'
 import Dashboard from './pages/Dashboard'
 import Leads from './pages/Leads'
+import Tracker from './pages/Tracker'
 import Scraper from './pages/Scraper'
 import Settings from './pages/Settings'
 
@@ -24,6 +25,7 @@ export default function App() {
           <>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/leads" element={<Leads />} />
+            <Route path="/tracker" element={<Tracker />} />
             <Route path="/scraper" element={<Scraper />} />
             <Route path="/settings" element={<Settings />} />
           </>

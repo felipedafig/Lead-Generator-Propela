@@ -36,6 +36,7 @@ export default function Leads() {
     try {
       const token = localStorage.getItem('token')
       const params = new URLSearchParams()
+      params.append('tracking', 'false')
       if (search) params.append('search', search)
       if (industry) params.append('industry', industry)
       if (status) params.append('status', status)
@@ -108,8 +109,11 @@ export default function Leads() {
         headers: { Authorization: `Bearer ${token}` }
       })
 
-      // Update with server response to ensure consistency
-      if (updates && response.data) {
+      // If tracking flags changed, refetch so the lead moves to Tracker
+      const tracksChanged = updates && (updates.email_sent !== undefined || updates.called !== undefined)
+      if (tracksChanged) {
+        fetchLeads()
+      } else if (updates && response.data) {
         setLeads(leads.map(lead =>
           lead.id === id ? {
             ...lead,
