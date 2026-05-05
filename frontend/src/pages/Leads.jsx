@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Download, Trash2, Edit2, Plus, ExternalLink, Trash } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
+import { useLeadType } from '../contexts/LeadTypeContext'
 
 export default function Leads() {
+  const { leadType, info, theme } = useLeadType()
   const [leads, setLeads] = useState([])
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -29,14 +31,18 @@ export default function Leads() {
   })
 
   useEffect(() => {
+    setIndustry('')
+    setSelectedRows(new Set())
+  }, [leadType])
+
+  useEffect(() => {
     fetchLeads()
-  }, [search, industry, status])
+  }, [search, industry, status, leadType])
 
   const fetchLeads = async () => {
     try {
       const token = localStorage.getItem('token')
       const params = new URLSearchParams()
-      params.append('tracking', 'false')
       if (search) params.append('search', search)
       if (industry) params.append('industry', industry)
       if (status) params.append('status', status)
@@ -109,11 +115,7 @@ export default function Leads() {
         headers: { Authorization: `Bearer ${token}` }
       })
 
-      // If tracking flags changed, refetch so the lead moves to Tracker
-      const tracksChanged = updates && (updates.email_sent !== undefined || updates.called !== undefined)
-      if (tracksChanged) {
-        fetchLeads()
-      } else if (updates && response.data) {
+      if (updates && response.data) {
         setLeads(leads.map(lead =>
           lead.id === id ? {
             ...lead,
@@ -232,8 +234,12 @@ export default function Leads() {
       <div className="flex-1 overflow-auto">
         {/* Top Bar */}
         <header className="bg-white border-b border-gray-200">
-          <div className="px-6 py-4">
+          <div className={`h-1 ${theme.headerBar}`} />
+          <div className="px-6 py-4 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-black">My Leads</h1>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${theme.badge}`}>
+              {info.fullLabel}
+            </span>
           </div>
         </header>
 
@@ -255,8 +261,9 @@ export default function Leads() {
                 className="input-propela"
               >
                 <option value="">All industries</option>
-                <option value="hotel">Hotel</option>
-                <option value="property manager">Property Manager</option>
+                {info.industries.map(i => (
+                  <option key={i.value} value={i.value}>{i.label}</option>
+                ))}
               </select>
               <select
                 value={status}
@@ -347,8 +354,9 @@ export default function Leads() {
                     className="input-propela"
                   >
                     <option value="">Select industry</option>
-                    <option value="hotel">Hotel</option>
-                    <option value="property manager">Property Manager</option>
+                    {info.industries.map(i => (
+                      <option key={i.value} value={i.value}>{i.label}</option>
+                    ))}
                   </select>
                 </div>
                 <textarea
@@ -450,24 +458,33 @@ export default function Leads() {
                         </td>
                         <td>{lead.city || '-'}</td>
                         <td>
-                          <span className={getStatusBadge(lead.status)}>{lead.status}</span>
+                          <select
+                            value={lead.status || 'new'}
+                            onChange={(e) => handleUpdate(lead.id, { status: e.target.value })}
+                            className={`${getStatusBadge(lead.status)} cursor-pointer border-0`}
+                          >
+                            <option value="new">new</option>
+                            <option value="contacted">contacted</option>
+                            <option value="qualified">qualified</option>
+                            <option value="closed">closed</option>
+                          </select>
                         </td>
                         <td className="whitespace-nowrap">
                           <div className="flex items-center gap-2">
                             <input
                               type="checkbox"
                               checked={!!lead.email_sent}
-                              onChange={(e) => handleUpdate(lead.id, { email_sent: e.target.checked })}
+                              onChange={(e) => {
+                                const checked = e.target.checked
+                                handleUpdate(lead.id, {
+                                  email_sent: checked,
+                                  email_sent_date: checked ? new Date().toISOString().split('T')[0] : null
+                                })
+                              }}
                               className="w-4 h-4 rounded cursor-pointer"
-                              title="Check when email sent"
                             />
-                            {lead.email_sent && (
-                              <input
-                                type="date"
-                                value={lead.email_sent_date || ''}
-                                onChange={(e) => handleUpdate(lead.id, { email_sent_date: e.target.value })}
-                                className="text-xs px-2 py-1 border border-gray-300 rounded"
-                              />
+                            {lead.email_sent && lead.email_sent_date && (
+                              <span className="text-xs text-gray-600">{lead.email_sent_date}</span>
                             )}
                           </div>
                         </td>
@@ -476,17 +493,17 @@ export default function Leads() {
                             <input
                               type="checkbox"
                               checked={!!lead.called}
-                              onChange={(e) => handleUpdate(lead.id, { called: e.target.checked })}
+                              onChange={(e) => {
+                                const checked = e.target.checked
+                                handleUpdate(lead.id, {
+                                  called: checked,
+                                  called_date: checked ? new Date().toISOString().split('T')[0] : null
+                                })
+                              }}
                               className="w-4 h-4 rounded cursor-pointer"
-                              title="Check when call made"
                             />
-                            {lead.called && (
-                              <input
-                                type="date"
-                                value={lead.called_date || ''}
-                                onChange={(e) => handleUpdate(lead.id, { called_date: e.target.value })}
-                                className="text-xs px-2 py-1 border border-gray-300 rounded"
-                              />
+                            {lead.called && lead.called_date && (
+                              <span className="text-xs text-gray-600">{lead.called_date}</span>
                             )}
                           </div>
                         </td>

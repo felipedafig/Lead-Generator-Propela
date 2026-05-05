@@ -5,14 +5,23 @@ import logger from '../utils/logger.js';
 
 const router = express.Router();
 
-// Helper function to determine company size tier
+const VALID_LEAD_TYPES = new Set(['hotels', 'website-design']);
+
+function getLeadType(req) {
+  const fromHeader = req.headers['x-lead-type'];
+  const fromQuery = req.query.lead_type;
+  const fromBody = req.body?.lead_type;
+  const candidate = fromHeader || fromQuery || fromBody || 'hotels';
+  return VALID_LEAD_TYPES.has(candidate) ? candidate : 'hotels';
+}
+
+// Helper function to determine company size tier (hotels environment only)
 function getCompanySizeTier(industry, employeeCount) {
   if (!employeeCount) {
-    // Generate random employee count if not provided
     if (industry === 'hotel') {
-      employeeCount = Math.floor(Math.random() * 450) + 1; // 1-500
+      employeeCount = Math.floor(Math.random() * 450) + 1;
     } else if (industry === 'property manager') {
-      employeeCount = Math.floor(Math.random() * 499) + 1; // 1-500 (property count)
+      employeeCount = Math.floor(Math.random() * 499) + 1;
     } else {
       employeeCount = Math.floor(Math.random() * 500) + 1;
     }
@@ -36,6 +45,7 @@ function getCompanySizeTier(industry, employeeCount) {
 router.post('/import', async (req, res) => {
   try {
     const db = getDatabase();
+    const leadType = getLeadType(req);
     const leads = Array.isArray(req.body) ? req.body : [req.body];
 
     if (leads.length === 0) {
@@ -51,15 +61,15 @@ router.post('/import', async (req, res) => {
         const email = lead.email || '';
         if (!phone && !email) { skipped++; continue; }
 
-        // Extract country and city from location if needed
         let city = lead.city || (lead.location ? lead.location.split(',')[0].trim() : '');
         let country = lead.country || (lead.location ? lead.location.split(',')[1].trim() : '');
-        let industry = lead.industry || 'hotel';
+        let industry = lead.industry || (leadType === 'hotels' ? 'hotel' : 'restaurant');
         let employeeCount = lead.employeeCount || lead.employee_count || null;
-        let companySizeTier = getCompanySizeTier(industry, employeeCount);
+        let companySizeTier = leadType === 'hotels'
+          ? getCompanySizeTier(industry, employeeCount)
+          : null;
 
-        // Generate employee count if not provided
-        if (!employeeCount) {
+        if (leadType === 'hotels' && !employeeCount) {
           if (industry === 'hotel') {
             employeeCount = Math.floor(Math.random() * 450) + 1;
           } else if (industry === 'property manager') {
@@ -67,10 +77,10 @@ router.post('/import', async (req, res) => {
           }
         }
 
-        const [result] = await db.execute(
+        await db.execute(
           `INSERT INTO leads
-           (user_id, company_name, owner_name, phone_number, email, city, country, industry, employee_count, company_size, review_count, rating, vibe_id, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (user_id, company_name, owner_name, phone_number, email, city, country, industry, employee_count, company_size, review_count, rating, vibe_id, notes, lead_type)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             req.user.id,
             lead.company || lead.company_name || lead.name,
@@ -85,13 +95,13 @@ router.post('/import', async (req, res) => {
             lead.reviewCount || lead.review_count || 0,
             lead.rating || 0,
             lead.id || lead.vibe_id || null,
-            lead.notes || `Imported lead - ${lead.title || 'Contact'}`
+            lead.notes || `Imported lead - ${lead.title || 'Contact'}`,
+            leadType
           ]
         );
 
         imported++;
       } catch (error) {
-        // Skip duplicate entries or other non-critical errors
         if (error.code === 'ER_DUP_ENTRY') {
           skipped++;
         } else {
@@ -103,6 +113,7 @@ router.post('/import', async (req, res) => {
 
     logger.info('Leads imported', {
       userId: req.user.id,
+      leadType,
       imported,
       skipped,
       total: leads.length
@@ -128,14 +139,52 @@ router.post('/import', async (req, res) => {
   }
 });
 
+// Lead Discovery — claim matching unclaimed leads and return them
+router.post('/discover', async (req, res) => {
+  try {
+    const db = getDatabase();
+    const leadType = getLeadType(req);
+    const { country, city, industry, company_size } = req.body;
+
+    let where = '(claimed = 0 OR claimed IS NULL) AND lead_type = ?';
+    const params = [leadType];
+
+    if (country) { where += ' AND country = ?'; params.push(country); }
+    if (city)    { where += ' AND city = ?';    params.push(city); }
+    if (industry){ where += ' AND industry = ?';params.push(industry); }
+    if (company_size) { where += ' AND company_size = ?'; params.push(company_size); }
+
+    const [matches] = await db.execute(`SELECT * FROM leads WHERE ${where}`, params);
+
+    if (matches.length > 0) {
+      const ids = matches.map(m => m.id);
+      const placeholders = ids.map(() => '?').join(',');
+      await db.execute(
+        `UPDATE leads SET claimed = 1, user_id = ? WHERE id IN (${placeholders})`,
+        [req.user.id, ...ids]
+      );
+    }
+
+    res.json({
+      success: true,
+      results: matches,
+      totalFound: matches.length
+    });
+  } catch (error) {
+    logger.error('Discover error:', { error: error.message });
+    res.status(500).json({ error: 'Failed to discover leads' });
+  }
+});
+
 // Get all leads for user (with optional city/country/industry/company_size search)
 router.get('/', async (req, res) => {
   try {
     const db = getDatabase();
+    const leadType = getLeadType(req);
     const { city, country, industry, company_size, status, search, tracking } = req.query;
 
-    let query = 'SELECT * FROM leads WHERE user_id = ?';
-    let params = [req.user.id];
+    let query = 'SELECT * FROM leads WHERE user_id = ? AND claimed = 1 AND lead_type = ?';
+    let params = [req.user.id, leadType];
 
     if (tracking === 'true') {
       query += ' AND (email_sent = 1 OR called = 1)';
@@ -208,12 +257,13 @@ router.get('/:id', async (req, res) => {
 router.post('/', async (req, res) => {
   try {
     const db = getDatabase();
+    const leadType = getLeadType(req);
     const { company_name, owner_name, phone_number, email, website_url, address, city, country, industry, review_count, rating, google_maps_url, notes } = req.body;
 
     const [result] = await db.execute(
-      `INSERT INTO leads (user_id, company_name, owner_name, phone_number, email, website_url, address, city, country, industry, review_count, rating, google_maps_url, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [req.user.id, company_name, owner_name || null, phone_number || null, email || null, website_url || null, address || null, city, country || null, industry, review_count || 0, rating || 0, google_maps_url || null, notes || null]
+      `INSERT INTO leads (user_id, company_name, owner_name, phone_number, email, website_url, address, city, country, industry, review_count, rating, google_maps_url, notes, lead_type, claimed)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
+      [req.user.id, company_name, owner_name || null, phone_number || null, email || null, website_url || null, address || null, city, country || null, industry, review_count || 0, rating || 0, google_maps_url || null, notes || null, leadType]
     );
 
     const [lead] = await db.execute('SELECT * FROM leads WHERE id = ?', [result.insertId]);
@@ -230,7 +280,6 @@ router.put('/:id', async (req, res) => {
     const db = getDatabase();
     const allowedFields = ['company_name', 'owner_name', 'phone_number', 'email', 'website_url', 'address', 'city', 'country', 'industry', 'review_count', 'rating', 'status', 'email_sent', 'email_sent_date', 'called', 'called_date', 'notes'];
 
-    // Build dynamic UPDATE query based on provided fields
     const updates = [];
     const values = [];
 
@@ -238,7 +287,6 @@ router.put('/:id', async (req, res) => {
       if (req.body.hasOwnProperty(field)) {
         updates.push(`${field} = ?`);
         let value = req.body[field];
-        // Handle special cases
         if (field === 'review_count' && value === undefined) value = 0;
         if (field === 'rating' && value === undefined) value = 0;
         if (field === 'status' && value === undefined) value = 'new';
@@ -284,10 +332,11 @@ router.delete('/:id', async (req, res) => {
 router.get('/export/xlsx', async (req, res) => {
   try {
     const db = getDatabase();
+    const leadType = getLeadType(req);
     const { industry } = req.query;
 
-    let query = 'SELECT * FROM leads WHERE user_id = ?';
-    let params = [req.user.id];
+    let query = 'SELECT * FROM leads WHERE user_id = ? AND lead_type = ?';
+    let params = [req.user.id, leadType];
 
     if (industry) {
       query += ' AND industry = ?';
@@ -301,7 +350,6 @@ router.get('/export/xlsx', async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Leads');
 
-    // Add headers
     worksheet.columns = [
       { header: 'Company Name', key: 'company_name', width: 25 },
       { header: 'Owner Name', key: 'owner_name', width: 20 },
@@ -322,17 +370,16 @@ router.get('/export/xlsx', async (req, res) => {
       { header: 'Created At', key: 'created_at', width: 15 }
     ];
 
-    // Style header
     worksheet.getRow(1).font = { bold: true, color: { argb: 'FFFFFFFF' } };
     worksheet.getRow(1).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF000000' } };
 
-    // Add data
     leads.forEach(lead => {
       worksheet.addRow(lead);
     });
 
+    const filename = leadType === 'website-design' ? 'propela-webdesign-leads.xlsx' : 'propela-hotels-leads.xlsx';
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename="propela-leads.xlsx"');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     await workbook.xlsx.write(res);
   } catch (error) {
@@ -345,6 +392,7 @@ router.get('/export/xlsx', async (req, res) => {
 router.get('/stats/summary', async (req, res) => {
   try {
     const db = getDatabase();
+    const leadType = getLeadType(req);
 
     const [stats] = await db.execute(`
       SELECT
@@ -353,13 +401,64 @@ router.get('/stats/summary', async (req, res) => {
         COUNT(CASE WHEN status = 'qualified' THEN 1 END) as qualified,
         AVG(review_count) as avg_reviews
       FROM leads
-      WHERE user_id = ?
-    `, [req.user.id]);
+      WHERE user_id = ? AND lead_type = ?
+    `, [req.user.id, leadType]);
 
     res.json(stats[0]);
   } catch (error) {
     logger.error('Stats error:', error);
     res.status(500).json({ error: 'Failed to fetch statistics' });
+  }
+});
+
+// Tracker-focused dashboard stats
+router.get('/stats/tracker', async (req, res) => {
+  try {
+    const db = getDatabase();
+    const leadType = getLeadType(req);
+    const userId = req.user.id;
+
+    const [totalRows] = await db.execute(
+      `SELECT COUNT(*) AS total_tracked FROM leads
+       WHERE user_id = ? AND claimed = 1 AND lead_type = ? AND (email_sent = 1 OR called = 1)`,
+      [userId, leadType]
+    );
+
+    const [statusRows] = await db.execute(
+      `SELECT COALESCE(status, 'new') AS status, COUNT(*) AS count
+       FROM leads
+       WHERE user_id = ? AND claimed = 1 AND lead_type = ? AND (email_sent = 1 OR called = 1)
+       GROUP BY status`,
+      [userId, leadType]
+    );
+
+    const [emailRows] = await db.execute(
+      `SELECT email_sent_date AS date, COUNT(*) AS count
+       FROM leads
+       WHERE user_id = ? AND claimed = 1 AND lead_type = ? AND email_sent = 1 AND email_sent_date IS NOT NULL
+       GROUP BY email_sent_date
+       ORDER BY email_sent_date`,
+      [userId, leadType]
+    );
+
+    const [callRows] = await db.execute(
+      `SELECT called_date AS date, COUNT(*) AS count
+       FROM leads
+       WHERE user_id = ? AND claimed = 1 AND lead_type = ? AND called = 1 AND called_date IS NOT NULL
+       GROUP BY called_date
+       ORDER BY called_date`,
+      [userId, leadType]
+    );
+
+    res.json({
+      total_tracked: Number(totalRows[0]?.total_tracked || 0),
+      status_distribution: statusRows.map(r => ({ status: r.status, count: Number(r.count) })),
+      emails_over_time: emailRows.map(r => ({ date: r.date, count: Number(r.count) })),
+      calls_over_time: callRows.map(r => ({ date: r.date, count: Number(r.count) }))
+    });
+  } catch (error) {
+    logger.error('Tracker stats error:', error);
+    res.status(500).json({ error: 'Failed to fetch tracker statistics' });
   }
 });
 

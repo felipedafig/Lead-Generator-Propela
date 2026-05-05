@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Settings as SettingsIcon, Save, Upload, X, CheckCircle, AlertCircle, Loader } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
+import { useLeadType } from '../contexts/LeadTypeContext'
 
 export default function Settings() {
+  const { info, theme } = useLeadType()
   const [user, setUser] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [apiKey, setApiKey] = useState('')
@@ -12,7 +14,6 @@ export default function Settings() {
   const [uploadedFiles, setUploadedFiles] = useState([])
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState(null)
-  const [leadType, setLeadType] = useState('hotels')
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user')
@@ -24,11 +25,6 @@ export default function Settings() {
     const storedApiKey = localStorage.getItem('apiKey')
     if (storedApiKey) {
       setApiKey(storedApiKey)
-    }
-
-    const storedLeadType = localStorage.getItem('leadType')
-    if (storedLeadType) {
-      setLeadType(storedLeadType)
     }
   }, [])
 
@@ -110,9 +106,6 @@ export default function Settings() {
         setUser(updated)
       }
 
-      // Save lead type preference
-      localStorage.setItem('leadType', leadType)
-
       // Import leads from uploaded files
       if (uploadedFiles.length > 0) {
         const token = localStorage.getItem('token')
@@ -157,11 +150,15 @@ export default function Settings() {
       <div className="flex-1 overflow-auto">
         {/* Top Bar */}
         <header className="bg-white border-b border-gray-200">
-          <div className="px-6 py-4">
+          <div className={`h-1 ${theme.headerBar}`} />
+          <div className="px-6 py-4 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-black flex items-center gap-2">
               <SettingsIcon size={28} />
               Settings
             </h1>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${theme.badge}`}>
+              {info.fullLabel}
+            </span>
           </div>
         </header>
 
@@ -216,82 +213,13 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* API Configuration */}
-          <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
-            <h2 className="text-xl font-bold mb-6">API Integration</h2>
-
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium text-black mb-2">
-                  Google Maps API Key (Optional)
-                </label>
-                <input
-                  type="password"
-                  value={apiKey}
-                  onChange={(e) => setApiKey(e.target.value)}
-                  placeholder="sk-..."
-                  className="input-propela"
-                />
-                <p className="text-xs text-gray-500 mt-2">
-                  If you provide your own key, we'll use it for more efficient scraping.
-                  <a href="https://developers.google.com/maps" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline"> Get API key</a>
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-black mb-2">
-                  Notification Email
-                </label>
-                <input
-                  type="email"
-                  value={notificationEmail}
-                  onChange={(e) => setNotificationEmail(e.target.value)}
-                  className="input-propela"
-                />
-                <p className="text-xs text-gray-500 mt-1">Receive notifications when searches are completed</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Lead Type Selection */}
-          <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
-            <h2 className="text-xl font-bold mb-6">Lead Type</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Choose the type of leads to generate or manage
-            </p>
-
-            <div className="flex gap-4">
-              <button
-                onClick={() => setLeadType('hotels')}
-                className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                  leadType === 'hotels'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                }`}
-              >
-                Hotels & Property Managers
-              </button>
-              <button
-                onClick={() => setLeadType('website-design')}
-                className={`px-6 py-3 rounded-lg font-medium transition-all ${
-                  leadType === 'website-design'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
-                }`}
-              >
-                Website Design Leads
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mt-3">
-              Current: <span className="font-semibold">{leadType === 'hotels' ? 'Hotels & Property Managers' : 'Website Design Leads'}</span>
-            </p>
-          </div>
-
           {/* Import Leads */}
           <div className="bg-white rounded-lg p-6 border border-gray-200 mb-6">
             <h2 className="text-xl font-bold mb-6">Import Leads</h2>
             <p className="text-sm text-gray-600 mb-4">
-              Upload CSV files containing lead data. Files will be imported into the database when you click Save Settings.
+              Upload CSV files containing lead data. Files will be imported into the
+              <span className={`mx-1 font-semibold ${theme.accentText}`}>{info.fullLabel}</span>
+              environment when you click Save Settings.
             </p>
 
             {importError && (

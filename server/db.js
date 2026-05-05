@@ -58,6 +58,7 @@ export async function initializeDatabase() {
         called BOOLEAN DEFAULT FALSE,
         called_date DATE,
         notes LONGTEXT,
+        lead_type VARCHAR(50) NOT NULL DEFAULT 'hotels',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
@@ -65,7 +66,8 @@ export async function initializeDatabase() {
         INDEX idx_city (city),
         INDEX idx_country (country),
         INDEX idx_industry (industry),
-        INDEX idx_company_size (company_size)
+        INDEX idx_company_size (company_size),
+        INDEX idx_lead_type (lead_type)
       )
     `);
 
@@ -96,6 +98,29 @@ export async function initializeDatabase() {
         INDEX idx_user_id (user_id)
       )
     `);
+
+    // Migration: add `claimed` column if it doesn't exist
+    try {
+      await connection.query(`ALTER TABLE leads ADD COLUMN claimed BOOLEAN DEFAULT FALSE`);
+      await connection.query(`ALTER TABLE leads ADD INDEX idx_claimed (claimed)`);
+    } catch (err) {
+      if (err.code !== 'ER_DUP_FIELDNAME' && err.code !== 'ER_DUP_KEYNAME') throw err;
+    }
+
+    // Migration: add `lead_type` column to separate hotels vs website-design environments
+    try {
+      await connection.query(`ALTER TABLE leads ADD COLUMN lead_type VARCHAR(50) NOT NULL DEFAULT 'hotels'`);
+      await connection.query(`ALTER TABLE leads ADD INDEX idx_lead_type (lead_type)`);
+    } catch (err) {
+      if (err.code !== 'ER_DUP_FIELDNAME' && err.code !== 'ER_DUP_KEYNAME') throw err;
+    }
+
+    try {
+      await connection.query(`ALTER TABLE scraping_tasks ADD COLUMN lead_type VARCHAR(50) NOT NULL DEFAULT 'hotels'`);
+      await connection.query(`ALTER TABLE scraping_tasks ADD INDEX idx_lead_type (lead_type)`);
+    } catch (err) {
+      if (err.code !== 'ER_DUP_FIELDNAME' && err.code !== 'ER_DUP_KEYNAME') throw err;
+    }
 
     await seedDefaultUsers(connection);
 

@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Trash2, ExternalLink, Activity } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
+import { useLeadType } from '../contexts/LeadTypeContext'
 
 export default function Tracker() {
+  const { leadType, info, theme } = useLeadType()
   const [leads, setLeads] = useState([])
   const [loading, setLoading] = useState(true)
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -11,8 +13,12 @@ export default function Tracker() {
   const [industry, setIndustry] = useState('')
 
   useEffect(() => {
+    setIndustry('')
+  }, [leadType])
+
+  useEffect(() => {
     fetchLeads()
-  }, [search, industry])
+  }, [search, industry, leadType])
 
   const fetchLeads = async () => {
     try {
@@ -81,12 +87,18 @@ export default function Tracker() {
 
       <div className="flex-1 overflow-auto">
         <header className="bg-white border-b border-gray-200">
-          <div className="px-6 py-4">
-            <h1 className="text-2xl font-bold text-black flex items-center gap-2">
-              <Activity size={28} />
-              Tracker
-            </h1>
-            <p className="text-sm text-gray-600 mt-1">Leads you've contacted by email or phone</p>
+          <div className={`h-1 ${theme.headerBar}`} />
+          <div className="px-6 py-4 flex justify-between items-start">
+            <div>
+              <h1 className="text-2xl font-bold text-black flex items-center gap-2">
+                <Activity size={28} />
+                Tracker
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">Leads you've contacted by email or phone</p>
+            </div>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${theme.badge}`}>
+              {info.fullLabel}
+            </span>
           </div>
         </header>
 
@@ -106,8 +118,9 @@ export default function Tracker() {
                 className="input-propela"
               >
                 <option value="">All industries</option>
-                <option value="hotel">Hotel</option>
-                <option value="property manager">Property Manager</option>
+                {info.industries.map(i => (
+                  <option key={i.value} value={i.value}>{i.label}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -177,16 +190,17 @@ export default function Tracker() {
                             <input
                               type="checkbox"
                               checked={!!lead.email_sent}
-                              onChange={(e) => handleUpdate(lead.id, { email_sent: e.target.checked })}
+                              onChange={(e) => {
+                                const checked = e.target.checked
+                                handleUpdate(lead.id, {
+                                  email_sent: checked,
+                                  email_sent_date: checked ? new Date().toISOString().split('T')[0] : null
+                                })
+                              }}
                               className="w-4 h-4 rounded cursor-pointer"
                             />
-                            {lead.email_sent && (
-                              <input
-                                type="date"
-                                value={lead.email_sent_date || ''}
-                                onChange={(e) => handleUpdate(lead.id, { email_sent_date: e.target.value })}
-                                className="text-xs px-2 py-1 border border-gray-300 rounded"
-                              />
+                            {lead.email_sent && lead.email_sent_date && (
+                              <span className="text-xs text-gray-600">{lead.email_sent_date}</span>
                             )}
                           </div>
                         </td>
@@ -195,16 +209,17 @@ export default function Tracker() {
                             <input
                               type="checkbox"
                               checked={!!lead.called}
-                              onChange={(e) => handleUpdate(lead.id, { called: e.target.checked })}
+                              onChange={(e) => {
+                                const checked = e.target.checked
+                                handleUpdate(lead.id, {
+                                  called: checked,
+                                  called_date: checked ? new Date().toISOString().split('T')[0] : null
+                                })
+                              }}
                               className="w-4 h-4 rounded cursor-pointer"
                             />
-                            {lead.called && (
-                              <input
-                                type="date"
-                                value={lead.called_date || ''}
-                                onChange={(e) => handleUpdate(lead.id, { called_date: e.target.value })}
-                                className="text-xs px-2 py-1 border border-gray-300 rounded"
-                              />
+                            {lead.called && lead.called_date && (
+                              <span className="text-xs text-gray-600">{lead.called_date}</span>
                             )}
                           </div>
                         </td>

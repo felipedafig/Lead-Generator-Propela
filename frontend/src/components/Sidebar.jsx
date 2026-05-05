@@ -1,9 +1,11 @@
 import React from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { BarChart3, Search, Settings, X, LogOut, Activity } from 'lucide-react'
+import { BarChart3, Search, Settings, X, LogOut, Activity, Building2, Globe } from 'lucide-react'
+import { useLeadType, LEAD_TYPES } from '../contexts/LeadTypeContext'
 
 export default function Sidebar({ isOpen, setIsOpen }) {
   const location = useLocation()
+  const { leadType, setLeadType, theme } = useLeadType()
 
   const isActive = (path) => location.pathname === path
 
@@ -12,6 +14,8 @@ export default function Sidebar({ isOpen, setIsOpen }) {
     localStorage.removeItem('user')
     window.location.href = '/login'
   }
+
+  const activeLink = `${theme.sidebarActive}`
 
   return (
     <>
@@ -27,13 +31,43 @@ export default function Sidebar({ isOpen, setIsOpen }) {
           isOpen ? 'translate-x-0' : '-translate-x-full'
         } fixed lg:relative w-64 h-screen bg-black text-white transition-transform duration-200 z-30 lg:z-0 flex flex-col`}
       >
+        {/* Lead Type Toggle */}
+        <div className="px-4 pt-4 pb-2">
+          <div className="bg-gray-900 border border-gray-800 rounded-full p-1 flex relative shadow-inner">
+            <button
+              onClick={() => setLeadType(LEAD_TYPES.HOTELS)}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                leadType === LEAD_TYPES.HOTELS
+                  ? 'bg-blue-600 text-white shadow-md'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+              title="Hotels & Property Managers"
+            >
+              <Building2 size={14} />
+              Hotels
+            </button>
+            <button
+              onClick={() => setLeadType(LEAD_TYPES.WEBSITE_DESIGN)}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                leadType === LEAD_TYPES.WEBSITE_DESIGN
+                  ? 'bg-emerald-600 text-white shadow-md'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+              title="Website Design Leads"
+            >
+              <Globe size={14} />
+              Web Design
+            </button>
+          </div>
+        </div>
+
         {/* Logo Section */}
         <div className="px-6 py-1 flex justify-center relative">
           <Link to="/dashboard" className="flex justify-center">
             <img
               src="/assets/logo-icon-black.png"
               alt="Propela"
-              className="h-55 w-auto object-contain filter invert leading-none"
+              className="h-44 w-auto object-contain filter invert leading-none"
               title="Propela - Lead Generation Platform"
             />
           </Link>
@@ -50,7 +84,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             to="/dashboard"
             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
               isActive('/dashboard')
-                ? 'bg-white text-black'
+                ? activeLink
                 : 'text-gray-300 hover:text-white hover:bg-gray-900'
             }`}
           >
@@ -62,7 +96,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             to="/leads"
             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
               isActive('/leads')
-                ? 'bg-white text-black'
+                ? activeLink
                 : 'text-gray-300 hover:text-white hover:bg-gray-900'
             }`}
           >
@@ -74,7 +108,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             to="/tracker"
             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
               isActive('/tracker')
-                ? 'bg-white text-black'
+                ? activeLink
                 : 'text-gray-300 hover:text-white hover:bg-gray-900'
             }`}
           >
@@ -86,7 +120,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             to="/scraper"
             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
               isActive('/scraper')
-                ? 'bg-white text-black'
+                ? activeLink
                 : 'text-gray-300 hover:text-white hover:bg-gray-900'
             }`}
           >
@@ -98,7 +132,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
             to="/settings"
             className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
               isActive('/settings')
-                ? 'bg-white text-black'
+                ? activeLink
                 : 'text-gray-300 hover:text-white hover:bg-gray-900'
             }`}
           >

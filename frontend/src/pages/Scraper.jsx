@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 import { Zap, AlertCircle, Loader, Star, Phone, Mail, MapPin } from 'lucide-react'
 import Sidebar from '../components/Sidebar'
+import { useLeadType, LEAD_TYPES } from '../contexts/LeadTypeContext'
 
 const COUNTRIES_CITIES = {
   'united-states': ['Miami, Florida', 'Orlando, Florida', 'San Antonio, Texas', 'Los Angeles, California', 'El Paso, Texas'],
@@ -21,23 +22,8 @@ const COUNTRY_NAMES = {
   'brazil': 'Brazil'
 }
 
-const INDUSTRIES = ['hotel', 'property manager']
-
-const COMPANY_SIZE_TIERS = {
-  hotel: [
-    { value: 'micro', label: 'Micro (1-10 employees)', min: 1, max: 10 },
-    { value: 'boutique-small', label: 'Boutique-Small (11-50 employees)', min: 11, max: 50 },
-    { value: 'boutique-mid', label: 'Boutique Mid (51-200 employees)', min: 51, max: 200 },
-    { value: 'mid-chain', label: 'Mid-Chain (200-500 employees)', min: 200, max: 500 }
-  ],
-  'property manager': [
-    { value: 'solo', label: 'Solo Property Manager (1 property)', min: 1, max: 1 },
-    { value: 'small-portfolio', label: 'Small Portfolio (2-10 properties)', min: 2, max: 10 },
-    { value: 'large-portfolio', label: 'Large Portfolio (10+ properties)', min: 10, max: 500 }
-  ]
-}
-
 export default function Scraper() {
+  const { leadType, info, theme } = useLeadType()
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -50,8 +36,17 @@ export default function Scraper() {
     companySize: ''
   })
 
+  useEffect(() => {
+    setFormData({ country: '', city: '', industry: '', companySize: '' })
+    setResults(null)
+    setLastSearch(null)
+    setError(null)
+  }, [leadType])
+
   const availableCities = formData.country ? COUNTRIES_CITIES[formData.country] : []
-  const availableSizes = formData.industry ? COMPANY_SIZE_TIERS[formData.industry] : []
+  const availableSizes = formData.industry && info.companySizeTiers[formData.industry]
+    ? info.companySizeTiers[formData.industry]
+    : []
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -66,32 +61,31 @@ export default function Scraper() {
       const token = localStorage.getItem('token')
       const countryName = COUNTRY_NAMES[formData.country]
 
-      const params = {
+      const body = {
         city: formData.city,
         country: countryName,
         industry: formData.industry
       }
 
-      // Add company size filter if selected
       if (formData.companySize) {
         const selectedTier = availableSizes.find(t => t.value === formData.companySize)
-        if (selectedTier) {
-          params.company_size = formData.companySize
-        }
+        if (selectedTier) body.company_size = formData.companySize
       }
 
-      // Query database leads by city/country/industry/company_size
-      const response = await axios.get('/api/leads', {
-        params,
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      // Artificial delay to simulate external API call
+      const [response] = await Promise.all([
+        axios.post('/api/leads/discover', body, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        new Promise(r => setTimeout(r, 1500))
+      ])
 
       setResults({
         success: true,
-        results: response.data,
-        totalFound: response.data.length,
+        results: response.data.results,
+        totalFound: response.data.totalFound,
         cached: false,
-        source: 'database'
+        source: 'discovery'
       })
       setLastSearch({
         country: countryName,
@@ -134,11 +128,15 @@ export default function Scraper() {
       <div className="flex-1 overflow-auto">
         {/* Top Bar */}
         <header className="bg-white border-b border-gray-200">
-          <div className="px-6 py-4">
+          <div className={`h-1 ${theme.headerBar}`} />
+          <div className="px-6 py-4 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-black flex items-center gap-2">
               <Zap size={28} />
               Lead Discovery
             </h1>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${theme.badge}`}>
+              {info.fullLabel}
+            </span>
           </div>
         </header>
 
@@ -161,9 +159,19 @@ export default function Scraper() {
                     className="input-propela"
                   >
                     <option value="">Select a country</option>
-                    {Object.entries(COUNTRY_NAMES).map(([key, name]) => (
-                      <option key={key} value={key}>{name}</option>
-                    ))}
+                    {Object.entries(COUNTRY_NAMES).map(([key, name]) => {
+                      const allowed = key === 'netherlands'
+                      return (
+                        <option
+                          key={key}
+                          value={key}
+                          disabled={!allowed}
+                          title={allowed ? '' : 'No data available for this country'}
+                        >
+                          {allowed ? name : `🚫 ${name}`}
+                        </option>
+                      )
+                    })}
                   </select>
                 </div>
 
@@ -198,23 +206,40 @@ export default function Scraper() {
                     className="input-propela"
                   >
                     <option value="">Select an industry</option>
-                    <option value="hotel">Hotel</option>
-                    <option value="property manager">Property Manager</option>
+                    {info.industries.map(i => {
+                      const allowed = leadType === LEAD_TYPES.HOTELS ? i.value === 'hotel' : true
+                      return (
+                        <option
+                          key={i.value}
+                          value={i.value}
+                          disabled={!allowed}
+                          title={allowed ? '' : 'No data available for this industry'}
+                        >
+                          {allowed ? i.label : `🚫 ${i.label}`}
+                        </option>
+                      )
+                    })}
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-black mb-2">
-                    {formData.industry === 'hotel' ? 'Hotel Size' : 'Management Type'}
+                    {leadType === LEAD_TYPES.HOTELS
+                      ? (formData.industry === 'hotel' ? 'Hotel Size' : 'Management Type')
+                      : 'Business Size'}
                   </label>
                   <select
                     value={formData.companySize}
                     onChange={(e) => setFormData({...formData, companySize: e.target.value})}
-                    disabled={!formData.industry}
+                    disabled={!formData.industry || availableSizes.length === 0}
                     className="input-propela disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
                     <option value="">
-                      {formData.industry ? 'Select a tier (optional)' : 'Choose industry first'}
+                      {!formData.industry
+                        ? 'Choose industry first'
+                        : availableSizes.length === 0
+                          ? 'Not applicable'
+                          : 'Select a tier (optional)'}
                     </option>
                     {availableSizes.map(tier => (
                       <option key={tier.value} value={tier.value}>{tier.label}</option>
