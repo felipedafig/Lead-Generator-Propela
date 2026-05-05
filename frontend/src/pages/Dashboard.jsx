@@ -84,19 +84,19 @@ export default function Dashboard() {
               <div className="grid md:grid-cols-3 gap-6 mb-8">
                 <StatCard
                   title="Total Leads"
-                  value={stats?.total_leads || 0}
+                  value={Number(stats?.total_leads) || 0}
                   icon={<Users size={24} />}
                   color="bg-blue-100"
                 />
                 <StatCard
                   title="Contacted"
-                  value={stats?.contacted || 0}
+                  value={Number(stats?.contacted) || 0}
                   icon={<Target size={24} />}
                   color="bg-green-100"
                 />
                 <StatCard
                   title="Average Rating"
-                  value={stats?.avg_reviews ? Number(stats.avg_reviews).toFixed(1) : 0}
+                  value={Number(stats?.avg_reviews) ? Number(stats.avg_reviews).toFixed(1) : 0}
                   icon={<TrendingUp size={24} />}
                   color="bg-purple-100"
                 />
