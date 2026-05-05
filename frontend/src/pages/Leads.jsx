@@ -224,7 +224,8 @@ export default function Leads() {
       'new': 'badge badge-new',
       'contacted': 'badge badge-contacted',
       'qualified': 'badge badge-qualified',
-      'closed': 'badge badge-closed'
+      'closed': 'badge badge-closed',
+      'rejected': 'badge badge-rejected'
     }
     return badges[status] || 'badge badge-new'
   }
@@ -277,6 +278,7 @@ export default function Leads() {
                 <option value="contacted">Contacted</option>
                 <option value="qualified">Qualified</option>
                 <option value="closed">Closed</option>
+                <option value="rejected">Rejected</option>
               </select>
             </div>
 
@@ -469,6 +471,7 @@ export default function Leads() {
                             <option value="contacted">contacted</option>
                             <option value="qualified">qualified</option>
                             <option value="closed">closed</option>
+                            <option value="rejected">rejected</option>
                           </select>
                         </td>
                         <td className="whitespace-nowrap">

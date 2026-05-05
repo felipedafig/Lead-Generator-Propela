@@ -91,6 +91,8 @@ export default function Scraper() {
         success: true,
         results: response.data.results,
         totalFound: response.data.totalFound,
+        newlyAdded: response.data.newlyAdded ?? 0,
+        alreadyOwned: response.data.alreadyOwned ?? 0,
         cached: false,
         source: 'discovery'
       })
@@ -296,14 +298,12 @@ export default function Scraper() {
                     <p className="text-2xl font-bold text-blue-600">{results.totalFound}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Source</p>
-                    <p className="text-sm font-semibold text-blue-600">Database</p>
+                    <p className="text-sm text-gray-600">Added to My Leads</p>
+                    <p className="text-2xl font-bold text-green-600">{results.newlyAdded}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600">Last Updated</p>
-                    <p className="text-sm font-semibold text-blue-600">
-                      {new Date(results.results[0]?.created_at).toLocaleDateString()}
-                    </p>
+                    <p className="text-sm text-gray-600">Already in My Leads</p>
+                    <p className="text-2xl font-bold text-gray-600">{results.alreadyOwned}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Industry</p>

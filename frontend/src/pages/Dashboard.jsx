@@ -10,7 +10,8 @@ const STATUS_COLORS = {
   new: '#9ca3af',
   contacted: '#3b82f6',
   qualified: '#10b981',
-  closed: '#6366f1'
+  closed: '#6366f1',
+  rejected: '#ef4444'
 }
 
 export default function Dashboard() {

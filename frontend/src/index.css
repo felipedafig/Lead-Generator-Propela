@@ -82,3 +82,7 @@ body {
 .badge-closed {
   @apply bg-gray-100 text-gray-800;
 }
+
+.badge-rejected {
+  @apply bg-red-100 text-red-800;
+}

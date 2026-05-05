@@ -68,6 +68,19 @@ router.post('/import', async (req, res) => {
       const n = parseFloat(String(v).replace(/[^\d.-]/g, ''));
       return Number.isFinite(n) ? n : null;
     };
+    const normalizePhone = (v) => v ? String(v).replace(/\D/g, '') : '';
+
+    // Pre-load phone numbers already in this environment so we can dedup imports.
+    const [existingRows] = await db.execute(
+      `SELECT phone_number FROM leads
+       WHERE lead_type = ? AND phone_number IS NOT NULL AND phone_number <> ''`,
+      [leadType]
+    );
+    const existingPhones = new Set(
+      existingRows
+        .map(r => normalizePhone(r.phone_number))
+        .filter(Boolean)
+    );
 
     let imported = 0;
     let skipped = 0;
@@ -77,6 +90,19 @@ router.post('/import', async (req, res) => {
       try {
         const phone = truncate(lead.phone || lead.phone_number, 64);
         const email = truncate(lead.email, 255);
+
+        // Skip duplicates by phone (digits-only match, scoped to this environment).
+        // This also catches duplicates within the same import batch.
+        const phoneKey = normalizePhone(phone);
+        if (phoneKey && existingPhones.has(phoneKey)) {
+          skipped++;
+          failures.push({
+            company: lead.company || lead.company_name || lead.name || phone,
+            code: 'DUPLICATE_PHONE',
+            message: `Phone already exists: ${phone}`
+          });
+          continue;
+        }
 
         let city = truncate(lead.city || (lead.location ? lead.location.split(',')[0] : null), 100);
         let country = truncate(lead.country || (lead.location ? lead.location.split(',').slice(1).join(',') : null), 100);
@@ -130,6 +156,7 @@ router.post('/import', async (req, res) => {
           ]
         );
 
+        if (phoneKey) existingPhones.add(phoneKey);
         imported++;
       } catch (error) {
         skipped++;
@@ -176,14 +203,14 @@ router.post('/import', async (req, res) => {
   }
 });
 
-// Lead Discovery — claim matching unclaimed leads and return them
+// Lead Discovery — return all matching leads and ensure they're claimed by the user
 router.post('/discover', async (req, res) => {
   try {
     const db = getDatabase();
     const leadType = getLeadType(req);
     const { country, city, industry, company_size } = req.body;
 
-    let where = '(claimed = 0 OR claimed IS NULL) AND lead_type = ?';
+    let where = 'lead_type = ?';
     const params = [leadType];
 
     if (country) { where += ' AND country = ?'; params.push(country); }
@@ -193,19 +220,41 @@ router.post('/discover', async (req, res) => {
 
     const [matches] = await db.execute(`SELECT * FROM leads WHERE ${where}`, params);
 
+    // Claim any rows that aren't already owned by the requesting user. Rows the
+    // user already owns are skipped — re-running the same search is idempotent
+    // and never duplicates a lead in the user's My Leads.
     if (matches.length > 0) {
-      const ids = matches.map(m => m.id);
-      const placeholders = ids.map(() => '?').join(',');
-      await db.execute(
-        `UPDATE leads SET claimed = 1, user_id = ? WHERE id IN (${placeholders})`,
-        [req.user.id, ...ids]
-      );
+      const toClaim = matches
+        .filter(m => !(m.claimed === 1 && m.user_id === req.user.id))
+        .map(m => m.id);
+
+      if (toClaim.length > 0) {
+        const placeholders = toClaim.map(() => '?').join(',');
+        await db.execute(
+          `UPDATE leads SET claimed = 1, user_id = ? WHERE id IN (${placeholders})`,
+          [req.user.id, ...toClaim]
+        );
+      }
     }
+
+    // Return the results as they now appear (claimed by current user) so the UI
+    // gets a consistent view regardless of how many times the search ran.
+    const newlyClaimed = matches.length;
+    const alreadyOwned = matches.filter(m => m.claimed === 1 && m.user_id === req.user.id).length;
+    const claimedNow = newlyClaimed - alreadyOwned;
+
+    const normalized = matches.map(m => ({
+      ...m,
+      claimed: 1,
+      user_id: req.user.id
+    }));
 
     res.json({
       success: true,
-      results: matches,
-      totalFound: matches.length
+      results: normalized,
+      totalFound: normalized.length,
+      newlyAdded: claimedNow,
+      alreadyOwned
     });
   } catch (error) {
     logger.error('Discover error:', { error: error.message });
