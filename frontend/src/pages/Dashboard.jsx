@@ -96,7 +96,7 @@ export default function Dashboard() {
                 />
                 <StatCard
                   title="Average Rating"
-                  value={stats?.avg_reviews ? stats.avg_reviews.toFixed(1) : 0}
+                  value={stats?.avg_reviews ? Number(stats.avg_reviews).toFixed(1) : 0}
                   icon={<TrendingUp size={24} />}
                   color="bg-purple-100"
                 />
