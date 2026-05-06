@@ -1,14 +1,21 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 import logger from '../utils/logger.js';
+
+dotenv.config();
 
 const router = express.Router();
 
-// Predefined accounts — add or change users here
+// Predefined accounts — passwords are loaded from .env (never commit real values)
 const USERS = [
-  { id: 1, name: 'Delano', email: 'delano@test.com', password: 'delano123' },
-  { id: 2, name: 'Felipe', email: 'felipe@test.com', password: 'delano123' },
+  { id: 1, name: 'Delano', email: 'delano@test.com', password: process.env.USER_DELANO_PASSWORD },
+  { id: 2, name: 'Felipe', email: 'felipe@test.com', password: process.env.USER_FELIPE_PASSWORD },
 ];
+
+if (!process.env.USER_DELANO_PASSWORD || !process.env.USER_FELIPE_PASSWORD) {
+  logger.warn('Auth user passwords missing from environment — set USER_DELANO_PASSWORD and USER_FELIPE_PASSWORD in .env');
+}
 
 router.post('/login', (req, res) => {
   const { email, password } = req.body;

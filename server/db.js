@@ -107,9 +107,9 @@ export async function initializeDatabase() {
 
 async function seedDefaultUsers(connection) {
   const users = [
-    { name: 'Delano', email: 'delano@test.com', password: 'delano123' },
-    { name: 'Felipe', email: 'felipe@test.com', password: 'delano123' }
-  ];
+    { name: 'Delano', email: 'delano@test.com', password: process.env.USER_DELANO_PASSWORD },
+    { name: 'Felipe', email: 'felipe@test.com', password: process.env.USER_FELIPE_PASSWORD }
+  ].filter(u => u.password);
 
   for (const user of users) {
     const [existing] = await connection.query('SELECT id FROM users WHERE email = ?', [user.email]);
