@@ -20,15 +20,21 @@ export default function Scraper() {
   const [error, setError] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [lastSearch, setLastSearch] = useState(null)
+  const defaultIndustry = leadType === LEAD_TYPES.WEBSITE_DESIGN ? 'all' : ''
   const [formData, setFormData] = useState({
     country: '',
     city: 'all',
-    industry: '',
+    industry: defaultIndustry,
     companySize: 'all'
   })
 
   useEffect(() => {
-    setFormData({ country: '', city: 'all', industry: '', companySize: 'all' })
+    setFormData({
+      country: '',
+      city: 'all',
+      industry: leadType === LEAD_TYPES.WEBSITE_DESIGN ? 'all' : '',
+      companySize: 'all'
+    })
     setResults(null)
     setLastSearch(null)
     setError(null)
@@ -40,10 +46,6 @@ export default function Scraper() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (leadType === LEAD_TYPES.WEBSITE_DESIGN) {
-      setError('Web Design mode has not been implemented yet.')
-      return
-    }
     if (!formData.country || !formData.industry) {
       setError('Please fill in all required fields')
       return
@@ -56,8 +58,11 @@ export default function Scraper() {
       const countryName = COUNTRY_NAMES[formData.country]
 
       const body = {
-        country: countryName,
-        industry: formData.industry
+        country: countryName
+      }
+
+      if (formData.industry && formData.industry !== 'all') {
+        body.industry = formData.industry
       }
 
       if (formData.city && formData.city !== 'all') {
@@ -89,7 +94,7 @@ export default function Scraper() {
       setLastSearch({
         country: countryName,
         city: formData.city === 'all' ? 'All cities' : formData.city,
-        industry: formData.industry,
+        industry: formData.industry === 'all' ? 'All industries' : formData.industry,
         companySize: formData.companySize === 'all' ? '' : formData.companySize,
         timestamp: new Date()
       })
@@ -141,21 +146,8 @@ export default function Scraper() {
 
         {/* Main Content */}
         <main className="p-6 max-w-7xl">
-          {leadType === LEAD_TYPES.WEBSITE_DESIGN && (
-            <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 mb-6 flex gap-3">
-              <AlertCircle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-amber-900">Web Design mode isn't available yet</p>
-                <p className="text-sm text-amber-800 mt-1">
-                  Lead discovery for the Website Design environment hasn't been implemented.
-                  Switch to Hotels mode in the sidebar to search for leads, or import a CSV from Settings.
-                </p>
-              </div>
-            </div>
-          )}
-
           {/* Form Card */}
-          <div className={`bg-white rounded-lg p-6 border border-gray-200 mb-8 ${leadType === LEAD_TYPES.WEBSITE_DESIGN ? 'opacity-60 pointer-events-none' : ''}`}>
+          <div className="bg-white rounded-lg p-6 border border-gray-200 mb-8">
             <h2 className="text-xl font-bold mb-6">Find Quality Leads</h2>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -213,20 +205,26 @@ export default function Scraper() {
                     required
                     className="input-propela"
                   >
-                    <option value="">Select an industry</option>
-                    {info.industries.map(i => {
-                      const allowed = leadType === LEAD_TYPES.HOTELS ? i.value === 'hotel' : true
-                      return (
-                        <option
-                          key={i.value}
-                          value={i.value}
-                          disabled={!allowed}
-                          title={allowed ? '' : 'No data available for this industry'}
-                        >
-                          {allowed ? i.label : `🚫 ${i.label}`}
-                        </option>
-                      )
-                    })}
+                    {leadType === LEAD_TYPES.WEBSITE_DESIGN ? (
+                      <option value="all">Select all industries</option>
+                    ) : (
+                      <>
+                        <option value="">Select an industry</option>
+                        {info.industries.map(i => {
+                          const allowed = i.value === 'hotel'
+                          return (
+                            <option
+                              key={i.value}
+                              value={i.value}
+                              disabled={!allowed}
+                              title={allowed ? '' : 'No data available for this industry'}
+                            >
+                              {allowed ? i.label : `🚫 ${i.label}`}
+                            </option>
+                          )
+                        })}
+                      </>
+                    )}
                   </select>
                 </div>
 
@@ -234,15 +232,17 @@ export default function Scraper() {
                   <label className="block text-sm font-medium text-black mb-2">
                     {leadType === LEAD_TYPES.HOTELS
                       ? (formData.industry === 'hotel' ? 'Hotel Size' : 'Management Type')
-                      : 'Business Size'}
+                      : 'Management Type'}
                   </label>
                   <select
                     value={formData.companySize}
                     onChange={(e) => setFormData({...formData, companySize: e.target.value})}
-                    disabled={!formData.industry || availableSizes.length === 0}
+                    disabled={leadType === LEAD_TYPES.HOTELS && (!formData.industry || availableSizes.length === 0)}
                     className="input-propela disabled:bg-gray-100 disabled:cursor-not-allowed"
                   >
-                    {!formData.industry ? (
+                    {leadType === LEAD_TYPES.WEBSITE_DESIGN ? (
+                      <option value="all">Select all management types</option>
+                    ) : !formData.industry ? (
                       <option value="all">Choose industry first</option>
                     ) : availableSizes.length === 0 ? (
                       <option value="all">Not applicable</option>
@@ -274,7 +274,7 @@ export default function Scraper() {
 
               <button
                 type="submit"
-                disabled={loading || leadType === LEAD_TYPES.WEBSITE_DESIGN || !formData.country || !formData.industry}
+                disabled={loading || !formData.country || !formData.industry}
                 className="btn-propela disabled:opacity-50 flex items-center gap-2 px-6 py-2"
               >
                 {loading ? (
