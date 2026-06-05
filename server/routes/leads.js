@@ -133,8 +133,8 @@ router.post('/import', async (req, res) => {
 
         await db.execute(
           `INSERT INTO leads
-           (user_id, company_name, owner_name, phone_number, email, website_url, address, city, country, industry, employee_count, company_size, review_count, rating, vibe_id, notes, lead_type)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           (user_id, company_name, owner_name, phone_number, email, website_url, address, city, country, industry, employee_count, company_size, review_count, rating, vibe_id, notes, lead_type, claimed)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
           [
             req.user.id,
             companyName,
@@ -210,8 +210,9 @@ router.post('/discover', async (req, res) => {
     const leadType = getLeadType(req);
     const { country, city, industry, company_size } = req.body;
 
-    let where = 'lead_type = ?';
-    const params = [leadType];
+    // Only surface unclaimed leads or leads already belonging to this user.
+    let where = 'lead_type = ? AND (claimed = 0 OR user_id = ?)';
+    const params = [leadType, req.user.id];
 
     if (country) { where += ' AND country = ?'; params.push(country); }
     if (city)    { where += ' AND city = ?';    params.push(city); }
@@ -220,12 +221,11 @@ router.post('/discover', async (req, res) => {
 
     const [matches] = await db.execute(`SELECT * FROM leads WHERE ${where}`, params);
 
-    // Claim any rows that aren't already owned by the requesting user. Rows the
-    // user already owns are skipped — re-running the same search is idempotent
-    // and never duplicates a lead in the user's My Leads.
+    // Claim only unclaimed rows — never reassign leads belonging to another user.
+    const alreadyOwned = matches.filter(m => m.claimed === 1 && m.user_id === req.user.id).length;
     if (matches.length > 0) {
       const toClaim = matches
-        .filter(m => !(m.claimed === 1 && m.user_id === req.user.id))
+        .filter(m => m.claimed !== 1)
         .map(m => m.id);
 
       if (toClaim.length > 0) {
@@ -237,11 +237,7 @@ router.post('/discover', async (req, res) => {
       }
     }
 
-    // Return the results as they now appear (claimed by current user) so the UI
-    // gets a consistent view regardless of how many times the search ran.
-    const newlyClaimed = matches.length;
-    const alreadyOwned = matches.filter(m => m.claimed === 1 && m.user_id === req.user.id).length;
-    const claimedNow = newlyClaimed - alreadyOwned;
+    const claimedNow = matches.filter(m => m.claimed !== 1).length;
 
     const normalized = matches.map(m => ({
       ...m,
