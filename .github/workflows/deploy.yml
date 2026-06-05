@@ -15,7 +15,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /opt/propela
+            cd ~/propela/Lead-Generator-Propela
             git pull origin master
             docker compose up -d --build
             docker compose ps
