@@ -94,6 +94,12 @@ export async function initializeDatabase() {
       // ignore if already at this size
     }
 
+    // Migration: claim all imported leads that have a user_id but were inserted before
+    // the import endpoint set claimed=1. This makes pre-fix imports visible in My Leads.
+    await connection.query(
+      `UPDATE leads SET claimed = 1 WHERE claimed = 0 AND user_id IS NOT NULL`
+    );
+
     await seedDefaultUsers(connection);
 
     connection.release();
