@@ -6,7 +6,7 @@ export default class ErrorBoundary extends React.Component {
     this.state = { error: null }
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(error) { //test
     return { error }
   }
 
